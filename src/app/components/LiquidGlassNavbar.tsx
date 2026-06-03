@@ -1,5 +1,6 @@
 import { useState, useEffect } from "react";
 import { motion, AnimatePresence } from "motion/react";
+import { Link } from "react-router";
 import { ImageWithFallback } from "@/app/components/figma/ImageWithFallback";
 import logoImg from "@/imports/image-2.png";
 
@@ -68,20 +69,34 @@ export function LiquidGlassNavbar() {
           </ul>
 
           {/* CTA Button - Desktop */}
-          <a
-            href="#contact"
-            className="hidden md:block px-6 py-2.5 rounded-full transition-all duration-300 hover:bg-[#C8B28A]"
-            style={{
-              backgroundColor: '#B59F78',
-              color: '#050808',
-              fontWeight: 500,
-              fontSize: '0.875rem',
-              letterSpacing: '0.03em',
-              boxShadow: isScrolled ? 'none' : '0 4px 16px rgba(0, 0, 0, 0.4)'
-            }}
-          >
-            Iniciar Projeto
-          </a>
+          <div className="hidden md:flex items-center gap-3">
+            <Link
+              to="/login"
+              className="px-5 py-2.5 rounded-full transition-all duration-300 border text-sm hover:border-[#B59F78]/50 hover:text-[#B59F78]"
+              style={{
+                color: isScrolled ? '#A7A39B' : '#F2F0EA',
+                fontWeight: 500,
+                letterSpacing: '0.03em',
+                borderColor: isScrolled ? 'rgba(255,255,255,0.1)' : 'rgba(255,255,255,0.18)',
+              }}
+            >
+              Entrar
+            </Link>
+            <a
+              href="#contact"
+              className="px-6 py-2.5 rounded-full transition-all duration-300 hover:bg-[#C8B28A]"
+              style={{
+                backgroundColor: '#B59F78',
+                color: '#050808',
+                fontWeight: 500,
+                fontSize: '0.875rem',
+                letterSpacing: '0.03em',
+                boxShadow: isScrolled ? 'none' : '0 4px 16px rgba(0, 0, 0, 0.4)'
+              }}
+            >
+              Iniciar Projeto
+            </a>
+          </div>
 
           {/* Mobile Menu Button */}
           <button
@@ -141,6 +156,21 @@ export function LiquidGlassNavbar() {
                   </a>
                 </li>
               ))}
+              <li>
+                <Link
+                  to="/login"
+                  onClick={() => setIsMobileMenuOpen(false)}
+                  className="block text-center px-6 py-3 rounded-full transition-all duration-300 border border-white/10"
+                  style={{
+                    color: '#A7A39B',
+                    fontWeight: 500,
+                    fontSize: '0.875rem',
+                    letterSpacing: '0.03em'
+                  }}
+                >
+                  Entrar
+                </Link>
+              </li>
               <li>
                 <a
                   href="#contact"
