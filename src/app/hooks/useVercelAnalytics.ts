@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
 
-interface DayData {
+export interface DayData {
   day: string;
   visits: number;
 }
@@ -11,10 +11,6 @@ interface AnalyticsResult {
   loading: boolean;
   error: boolean;
 }
-
-const TOKEN      = import.meta.env.VITE_VERCEL_TOKEN as string | undefined;
-const PROJECT_ID = import.meta.env.VITE_VERCEL_PROJECT_ID as string | undefined;
-const TEAM_ID    = import.meta.env.VITE_VERCEL_TEAM_ID as string | undefined;
 
 function formatDay(dateStr: string): string {
   const d = new Date(dateStr);
@@ -28,27 +24,10 @@ export function useVercelAnalytics(): AnalyticsResult {
   const [error, setError] = useState(false);
 
   useEffect(() => {
-    if (!TOKEN || !PROJECT_ID) {
-      setLoading(false);
-      setError(true);
-      return;
-    }
-
     const endAt   = Date.now();
     const startAt = endAt - 14 * 24 * 60 * 60 * 1000;
 
-    const params = new URLSearchParams({
-      projectId:   PROJECT_ID,
-      startAt:     String(startAt),
-      endAt:       String(endAt),
-      environment: "production",
-      granularity: "1d",
-      ...(TEAM_ID ? { teamId: TEAM_ID } : {}),
-    });
-
-    fetch(`https://vercel.com/api/web-analytics/timeseries?${params}`, {
-      headers: { Authorization: `Bearer ${TOKEN}` },
-    })
+    fetch(`/api/analytics?startAt=${startAt}&endAt=${endAt}`)
       .then((r) => {
         if (!r.ok) throw new Error(`${r.status}`);
         return r.json();
