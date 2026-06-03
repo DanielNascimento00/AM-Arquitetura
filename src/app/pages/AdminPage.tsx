@@ -52,23 +52,31 @@ const mockLeads: Lead[] = [
   { id: 5, name: "Fernanda Lima", email: "flima@email.com", phone: "(11) 94321-0987", message: "Interesse em projeto de interiores para apartamento...", date: "30/05/2026", status: "perdido" },
 ];
 
+type PhotoCategory = "arquitetura" | "marcenaria";
+
 interface Photo {
   id: number;
   title: string;
   description: string;
+  category: PhotoCategory;
   order: number;
   featured: boolean;
   preview: string | null;
   gradient: string;
 }
 
+const categoryConfig: Record<PhotoCategory, { label: string; color: string; bg: string }> = {
+  arquitetura: { label: "Arquitetura", color: "#B59F78", bg: "rgba(181,159,120,0.15)" },
+  marcenaria:  { label: "Marcenaria",  color: "#60a5fa", bg: "rgba(96,165,250,0.15)" },
+};
+
 const mockPhotos: Photo[] = [
-  { id: 1, title: "Sala de Estar Contemporânea", description: "Projeto com marcenaria sob medida e iluminação cênica", order: 1, featured: true, preview: null, gradient: "linear-gradient(135deg, #1a1a2e 0%, #16213e 50%, #0f3460 100%)" },
-  { id: 2, title: "Cozinha Integrada", description: "Americana com ilha central e acabamento premium", order: 2, featured: false, preview: null, gradient: "linear-gradient(135deg, #0d1b2a 0%, #1b263b 50%, #415a77 100%)" },
-  { id: 3, title: "Suíte Master", description: "Closet integrado com banheira e iluminação indireta", order: 3, featured: false, preview: null, gradient: "linear-gradient(135deg, #1c0a00 0%, #3d1a00 50%, #6b3a2a 100%)" },
-  { id: 4, title: "Home Office", description: "Espaço funcional com estante planejada e mesa sob medida", order: 4, featured: false, preview: null, gradient: "linear-gradient(135deg, #0a1628 0%, #1a2f4a 50%, #2d4a6e 100%)" },
-  { id: 5, title: "Varanda Gourmet", description: "Integração sala-varanda com pergolado e churrasqueira", order: 5, featured: false, preview: null, gradient: "linear-gradient(135deg, #0d1a0d 0%, #1a3a1a 50%, #2d5a2d 100%)" },
-  { id: 6, title: "Banheiro de Luxo", description: "Mármore carrara com metais dourados e banheira freestanding", order: 6, featured: false, preview: null, gradient: "linear-gradient(135deg, #1a1008 0%, #3a2510 50%, #5a3a1a 100%)" },
+  { id: 1, title: "Sala de Estar Contemporânea", description: "Projeto com iluminação cênica e integração de ambientes", category: "arquitetura", order: 1, featured: true,  preview: null, gradient: "linear-gradient(135deg, #1a1a2e 0%, #16213e 50%, #0f3460 100%)" },
+  { id: 2, title: "Cozinha Integrada",           description: "Americana com ilha central e acabamento premium",          category: "arquitetura", order: 2, featured: false, preview: null, gradient: "linear-gradient(135deg, #0d1b2a 0%, #1b263b 50%, #415a77 100%)" },
+  { id: 3, title: "Suíte Master",                description: "Closet integrado com banheira e iluminação indireta",      category: "arquitetura", order: 3, featured: false, preview: null, gradient: "linear-gradient(135deg, #1c0a00 0%, #3d1a00 50%, #6b3a2a 100%)" },
+  { id: 4, title: "Estante Planejada",           description: "Marcenaria sob medida em freijó com nichos abertos",       category: "marcenaria",  order: 4, featured: false, preview: null, gradient: "linear-gradient(135deg, #0a1628 0%, #1a2f4a 50%, #2d4a6e 100%)" },
+  { id: 5, title: "Closet Autoral",              description: "Closet feminino em laca off-white com espelho bisotê",     category: "marcenaria",  order: 5, featured: true,  preview: null, gradient: "linear-gradient(135deg, #0d1a0d 0%, #1a3a1a 50%, #2d5a2d 100%)" },
+  { id: 6, title: "Painel TV com Lareira",       description: "Painel em MDF amadeirado com lareira embutida",            category: "marcenaria",  order: 6, featured: false, preview: null, gradient: "linear-gradient(135deg, #1a1008 0%, #3a2510 50%, #5a3a1a 100%)" },
 ];
 
 /* ─── Helpers ────────────────────────────────────────────── */
@@ -124,7 +132,8 @@ export function AdminPage() {
   const [leads, setLeads] = useState<Lead[]>(mockLeads);
   const [isDragging, setIsDragging] = useState(false);
   const [uploadPreview, setUploadPreview] = useState<string | null>(null);
-  const [photoForm, setPhotoForm] = useState({ title: "", description: "", order: mockPhotos.length + 1, featured: false });
+  const [photoForm, setPhotoForm] = useState({ title: "", description: "", category: "arquitetura" as PhotoCategory, order: mockPhotos.length + 1, featured: false });
+  const [galleryFilter, setGalleryFilter] = useState<PhotoCategory | "todos">("todos");
   const fileRef = useRef<HTMLInputElement>(null);
 
   const handleFile = (file: File) => {
@@ -148,6 +157,7 @@ export function AdminPage() {
       id: Date.now(),
       title: photoForm.title,
       description: photoForm.description,
+      category: photoForm.category,
       order: photoForm.order,
       featured: photoForm.featured,
       preview: uploadPreview,
@@ -155,7 +165,7 @@ export function AdminPage() {
     };
     setPhotos((prev) => [...prev, newPhoto].sort((a, b) => a.order - b.order));
     setUploadPreview(null);
-    setPhotoForm({ title: "", description: "", order: photos.length + 2, featured: false });
+    setPhotoForm({ title: "", description: "", category: "arquitetura", order: photos.length + 2, featured: false });
   };
 
   const toggleFeatured = (id: number) =>
@@ -691,6 +701,30 @@ export function AdminPage() {
                           </label>
                         </div>
 
+                        {/* Category selector */}
+                        <div className="flex gap-3">
+                          {(["arquitetura", "marcenaria"] as PhotoCategory[]).map((cat) => {
+                            const active = photoForm.category === cat;
+                            const cfg = categoryConfig[cat];
+                            return (
+                              <button
+                                key={cat}
+                                type="button"
+                                onClick={() => setPhotoForm({ ...photoForm, category: cat })}
+                                className="flex-1 py-3 rounded-[14px] text-sm transition-all duration-200"
+                                style={{
+                                  background: active ? cfg.bg : "#0E1414",
+                                  border: `1px solid ${active ? cfg.color + "55" : "rgba(255,255,255,0.06)"}`,
+                                  color: active ? cfg.color : "#A7A39B",
+                                  fontWeight: active ? 500 : 400,
+                                }}
+                              >
+                                {cfg.label}
+                              </button>
+                            );
+                          })}
+                        </div>
+
                         {/* Order + Featured row */}
                         <div className="flex items-center gap-4">
                           {/* Order */}
@@ -774,13 +808,41 @@ export function AdminPage() {
 
                 {/* Photos grid */}
                 <div>
-                  <div className="flex items-center justify-between mb-4">
-                    <p className="text-[#F2F0EA] text-base" style={{ fontWeight: 500 }}>
-                      Fotos no portfólio
-                      <span className="ml-2 text-[#A7A39B] text-sm" style={{ fontWeight: 400 }}>
-                        ({photos.length} fotos)
-                      </span>
-                    </p>
+                  <div className="flex flex-wrap items-center justify-between gap-3 mb-4">
+                    {/* Filter tabs */}
+                    <div className="flex items-center gap-2">
+                      {([
+                        { id: "todos",        label: "Todos",       count: photos.length },
+                        { id: "arquitetura",  label: "Arquitetura", count: photos.filter((p) => p.category === "arquitetura").length },
+                        { id: "marcenaria",   label: "Marcenaria",  count: photos.filter((p) => p.category === "marcenaria").length },
+                      ] as { id: PhotoCategory | "todos"; label: string; count: number }[]).map((tab) => {
+                        const active = galleryFilter === tab.id;
+                        return (
+                          <button
+                            key={tab.id}
+                            onClick={() => setGalleryFilter(tab.id)}
+                            className="flex items-center gap-1.5 px-3.5 py-1.5 rounded-full text-xs transition-all duration-200"
+                            style={{
+                              background: active ? "rgba(181,159,120,0.12)" : "transparent",
+                              border: `1px solid ${active ? "rgba(181,159,120,0.3)" : "rgba(255,255,255,0.07)"}`,
+                              color: active ? "#B59F78" : "#A7A39B",
+                              fontWeight: active ? 500 : 400,
+                            }}
+                          >
+                            {tab.label}
+                            <span
+                              className="px-1.5 py-0.5 rounded-full text-[10px]"
+                              style={{
+                                background: active ? "rgba(181,159,120,0.2)" : "rgba(255,255,255,0.06)",
+                                color: active ? "#B59F78" : "#A7A39B",
+                              }}
+                            >
+                              {tab.count}
+                            </span>
+                          </button>
+                        );
+                      })}
+                    </div>
                     <div className="flex items-center gap-1.5">
                       <GripVertical size={14} style={{ color: "#A7A39B" }} />
                       <span className="text-[#A7A39B] text-xs hidden sm:block" style={{ fontWeight: 400 }}>
@@ -790,7 +852,7 @@ export function AdminPage() {
                   </div>
 
                   <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-                    {photos.map((photo, i) => (
+                    {photos.filter((p) => galleryFilter === "todos" || p.category === galleryFilter).map((photo, i) => (
                       <motion.div
                         key={photo.id}
                         initial={{ opacity: 0, scale: 0.97 }}
@@ -849,6 +911,19 @@ export function AdminPage() {
                               <span className="text-[10px] text-[#050808]" style={{ fontWeight: 600 }}>Destaque</span>
                             </div>
                           )}
+
+                          {/* Category badge */}
+                          <div
+                            className="absolute bottom-3 left-3 px-2.5 py-1 rounded-full"
+                            style={{
+                              background: categoryConfig[photo.category].bg,
+                              backdropFilter: "blur(8px)",
+                            }}
+                          >
+                            <span className="text-[10px]" style={{ color: categoryConfig[photo.category].color, fontWeight: 600 }}>
+                              {categoryConfig[photo.category].label}
+                            </span>
+                          </div>
 
                           {/* Order badge */}
                           <div
