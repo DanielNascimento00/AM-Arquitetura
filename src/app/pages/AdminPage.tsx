@@ -294,7 +294,7 @@ export function AdminPage() {
   const chartData = last14Days.length > 0 ? last14Days : visitData;
 
   const stats = [
-    { icon: Eye, label: "Total de Visitas", value: visitsDisplay, trend: analyticsError ? "sem dados" : "últimos 14 dias", up: true, sub: analyticsError ? "configure as env vars" : "Vercel Analytics" },
+    { icon: Eye, label: "Total de Visitas", value: visitsDisplay, trend: analyticsError ? "sem dados" : "últimos 14 dias", up: true, sub: "Vercel Analytics" },
     { icon: Users, label: "Leads Gerados", value: String(leads.length), trend: `${leads.filter((l) => l.status === "novo").length} novos`, up: true, sub: "este mês" },
     { icon: TrendingUp, label: "Taxa de Conversão", value: convRate, trend: "", up: true, sub: "leads / visitas" },
     { icon: MoreHorizontal, label: "Formulários Recebidos", value: String(leads.length), trend: `${leads.filter((l) => l.status === "novo").length} novos`, up: true, sub: "aguardando resposta" },
@@ -540,7 +540,7 @@ export function AdminPage() {
                         {analyticsLoading ? "..." : analyticsError ? "—" : totalViews.toLocaleString("pt-BR")}
                       </p>
                       <p className="text-[#A7A39B] text-xs flex items-center justify-end gap-1 mt-0.5" style={{ fontWeight: 400 }}>
-                        {analyticsError ? "configure as variáveis de ambiente" : "últimos 14 dias"}
+                        últimos 14 dias
                       </p>
                     </div>
                   </div>
