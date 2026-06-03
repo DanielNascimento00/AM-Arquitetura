@@ -47,15 +47,25 @@ export default defineConfig(({ mode }) => {
           ...(teamId ? { teamId } : {}),
         });
 
-        const apiUrl = `https://vercel.com/api/web-analytics/timeseries?${vercelParams}`;
-        console.log('[Analytics] →', apiUrl);
-
         try {
+          // Busca o ownerId da conta a partir do token
+          const userRes  = await fetch('https://vercel.com/api/v2/user', {
+            headers: { Authorization: `Bearer ${token}` },
+          });
+          const userData = await userRes.json() as Record<string, Record<string, string>>;
+          const ownerId  = userData?.user?.id ?? '';
+          console.log('[Analytics] ownerId:', ownerId);
+
+          if (ownerId) vercelParams.set('ownerId', ownerId);
+
+          const apiUrl = `https://vercel.com/api/web-analytics/timeseries?${vercelParams}`;
+          console.log('[Analytics] →', apiUrl);
+
           const apiRes = await fetch(apiUrl, {
             headers: { Authorization: `Bearer ${token}` },
           });
           const text = await apiRes.text();
-          console.log('[Analytics] status:', apiRes.status, '| body:', text.slice(0, 400));
+          console.log('[Analytics] status:', apiRes.status, '| body:', text.slice(0, 600));
           res.writeHead(apiRes.status, { 'Content-Type': 'application/json' });
           res.end(text);
         } catch (err) {

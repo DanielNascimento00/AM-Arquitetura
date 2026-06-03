@@ -14,13 +14,21 @@ export default async function handler(request: Request): Promise<Response> {
   const endMs   = Number(searchParams.get("endAt")   ?? now);
   const startMs = Number(searchParams.get("startAt") ?? now - 14 * 24 * 60 * 60 * 1000);
 
+  // Busca ownerId da conta
+  const userRes  = await fetch("https://vercel.com/api/v2/user", {
+    headers: { Authorization: `Bearer ${token}` },
+  });
+  const userData = await userRes.json() as Record<string, Record<string, string>>;
+  const ownerId  = userData?.user?.id ?? "";
+
   const params = new URLSearchParams({
     projectId,
     from:        new Date(startMs).toISOString(),
     to:          new Date(endMs).toISOString(),
     environment: "production",
     granularity: "1d",
-    ...(teamId ? { teamId } : {}),
+    ...(ownerId ? { ownerId } : {}),
+    ...(teamId  ? { teamId  } : {}),
   });
 
   const res = await fetch(
