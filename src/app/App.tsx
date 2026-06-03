@@ -1,5 +1,6 @@
 import { useEffect } from "react";
 import { BrowserRouter, Routes, Route } from "react-router";
+import { Analytics } from "@vercel/analytics/react";
 import { LiquidGlassNavbar } from "./components/LiquidGlassNavbar";
 import { HeroSection } from "./components/HeroSection";
 import { AboutSection } from "./components/AboutSection";
@@ -53,6 +54,7 @@ function App() {
         <Route path="/login" element={<LoginPage />} />
         <Route path="/admin" element={<AdminPage />} />
       </Routes>
+      <Analytics />
     </BrowserRouter>
   );
 }

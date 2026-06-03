@@ -12,6 +12,7 @@ import {
 import { Link } from "react-router";
 import { ImageWithFallback } from "@/app/components/figma/ImageWithFallback";
 import logoImg from "@/imports/image-2.png";
+import { useVercelAnalytics } from "@/app/hooks/useVercelAnalytics";
 
 /* ─── Mock data ──────────────────────────────────────────── */
 
@@ -141,6 +142,7 @@ function CustomTooltip({ active, payload, label }: { active?: boolean; payload?:
 type Tab = "dashboard" | "gallery";
 
 export function AdminPage() {
+  const { totalViews, last14Days, loading: analyticsLoading, error: analyticsError } = useVercelAnalytics();
   const [activeTab, setActiveTab] = useState<Tab>("dashboard");
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [projects, setProjects] = useState<Project[]>(mockProjects);
@@ -279,10 +281,22 @@ export function AdminPage() {
     setEditingProject(null);
   };
 
+  const visitsDisplay = analyticsLoading
+    ? "..."
+    : analyticsError
+    ? "—"
+    : totalViews.toLocaleString("pt-BR");
+
+  const convRate = analyticsError || totalViews === 0
+    ? "—"
+    : ((leads.length / totalViews) * 100).toFixed(1).replace(".", ",") + "%";
+
+  const chartData = last14Days.length > 0 ? last14Days : visitData;
+
   const stats = [
-    { icon: Eye, label: "Total de Visitas", value: "12.847", trend: "+12%", up: true, sub: "vs. mês anterior" },
-    { icon: Users, label: "Leads Gerados", value: "48", trend: "+8%", up: true, sub: "este mês" },
-    { icon: TrendingUp, label: "Taxa de Conversão", value: "3,7%", trend: "+0,4pp", up: true, sub: "leads / visitas" },
+    { icon: Eye, label: "Total de Visitas", value: visitsDisplay, trend: analyticsError ? "sem dados" : "últimos 14 dias", up: true, sub: analyticsError ? "configure as env vars" : "Vercel Analytics" },
+    { icon: Users, label: "Leads Gerados", value: String(leads.length), trend: `${leads.filter((l) => l.status === "novo").length} novos`, up: true, sub: "este mês" },
+    { icon: TrendingUp, label: "Taxa de Conversão", value: convRate, trend: "", up: true, sub: "leads / visitas" },
     { icon: MoreHorizontal, label: "Formulários Recebidos", value: String(leads.length), trend: `${leads.filter((l) => l.status === "novo").length} novos`, up: true, sub: "aguardando resposta" },
   ];
 
@@ -522,15 +536,17 @@ export function AdminPage() {
                       </h2>
                     </div>
                     <div className="text-right">
-                      <p className="text-[#F2F0EA] text-2xl" style={{ fontWeight: 400 }}>6.844</p>
-                      <p className="text-[#4ade80] text-xs flex items-center justify-end gap-1 mt-0.5" style={{ fontWeight: 500 }}>
-                        <ArrowUpRight size={12} /> +18% vs. período anterior
+                      <p className="text-[#F2F0EA] text-2xl" style={{ fontWeight: 400 }}>
+                        {analyticsLoading ? "..." : analyticsError ? "—" : totalViews.toLocaleString("pt-BR")}
+                      </p>
+                      <p className="text-[#A7A39B] text-xs flex items-center justify-end gap-1 mt-0.5" style={{ fontWeight: 400 }}>
+                        {analyticsError ? "configure as variáveis de ambiente" : "últimos 14 dias"}
                       </p>
                     </div>
                   </div>
 
                   <ResponsiveContainer width="100%" height={220}>
-                    <AreaChart data={visitData} margin={{ top: 4, right: 4, left: -20, bottom: 0 }}>
+                    <AreaChart data={chartData} margin={{ top: 4, right: 4, left: -20, bottom: 0 }}>
                       <defs>
                         <linearGradient id="goldGradient" x1="0" y1="0" x2="0" y2="1">
                           <stop offset="5%" stopColor="#B59F78" stopOpacity={0.25} />
