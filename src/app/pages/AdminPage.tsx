@@ -207,6 +207,9 @@ export function AdminPage() {
     setPhotoForm({ title: "", description: "", category: "arquitetura", order: projects.length + 2, featured: false });
   };
 
+  const updateLeadStatus = (id: number, status: LeadStatus) =>
+    setLeads((prev) => prev.map((l) => (l.id === id ? { ...l, status } : l)));
+
   const toggleFeatured = (id: number) =>
     setProjects((prev) => prev.map((p) => ({ ...p, featured: p.id === id ? !p.featured : p.featured })));
 
@@ -535,7 +538,7 @@ export function AdminPage() {
                     <table className="w-full">
                       <thead>
                         <tr style={{ borderBottom: "1px solid rgba(255,255,255,0.04)" }}>
-                          {["Nome", "Contato", "Mensagem", "Data", "Status"].map((h) => (
+                          {["Nome", "Contato", "Mensagem", "Data", "Status", "Ações"].map((h) => (
                             <th key={h} className="px-6 py-3 text-left text-[11px] tracking-[0.1em] uppercase" style={{ color: "#A7A39B", fontWeight: 500 }}>
                               {h}
                             </th>
@@ -589,6 +592,33 @@ export function AdminPage() {
                             <td className="px-6 py-4">
                               <StatusBadge status={lead.status} />
                             </td>
+                            <td className="px-6 py-4">
+                              <div className="flex items-center gap-1.5">
+                                {([
+                                  { status: "contato" as LeadStatus, label: "Em Contato", color: "#60a5fa", bg: "rgba(96,165,250,0.12)" },
+                                  { status: "fechado"  as LeadStatus, label: "Fechado",    color: "#4ade80", bg: "rgba(74,222,128,0.12)" },
+                                  { status: "perdido"  as LeadStatus, label: "Perdido",    color: "#f87171", bg: "rgba(248,113,113,0.12)" },
+                                ]).map((action) => {
+                                  const isActive = lead.status === action.status;
+                                  return (
+                                    <button
+                                      key={action.status}
+                                      onClick={() => updateLeadStatus(lead.id, action.status)}
+                                      className="px-2.5 py-1 rounded-full text-[11px] transition-all duration-200 whitespace-nowrap"
+                                      style={{
+                                        color: action.color,
+                                        background: isActive ? action.bg : "transparent",
+                                        border: `1px solid ${isActive ? action.color + "55" : "rgba(255,255,255,0.07)"}`,
+                                        fontWeight: isActive ? 600 : 400,
+                                        opacity: isActive ? 1 : 0.6,
+                                      }}
+                                    >
+                                      {action.label}
+                                    </button>
+                                  );
+                                })}
+                              </div>
+                            </td>
                           </motion.tr>
                         ))}
                       </tbody>
@@ -606,6 +636,31 @@ export function AdminPage() {
                         <p className="text-[#A7A39B] text-xs">{lead.email}</p>
                         <p className="text-[#A7A39B] text-xs truncate">{lead.message}</p>
                         <p className="text-[#A7A39B]/60 text-[11px]">{lead.date}</p>
+                        <div className="flex items-center gap-1.5 pt-1">
+                          {([
+                            { status: "contato" as LeadStatus, label: "Em Contato", color: "#60a5fa", bg: "rgba(96,165,250,0.12)" },
+                            { status: "fechado"  as LeadStatus, label: "Fechado",    color: "#4ade80", bg: "rgba(74,222,128,0.12)" },
+                            { status: "perdido"  as LeadStatus, label: "Perdido",    color: "#f87171", bg: "rgba(248,113,113,0.12)" },
+                          ]).map((action) => {
+                            const isActive = lead.status === action.status;
+                            return (
+                              <button
+                                key={action.status}
+                                onClick={() => updateLeadStatus(lead.id, action.status)}
+                                className="px-2.5 py-1 rounded-full text-[11px] transition-all duration-200 whitespace-nowrap"
+                                style={{
+                                  color: action.color,
+                                  background: isActive ? action.bg : "transparent",
+                                  border: `1px solid ${isActive ? action.color + "55" : "rgba(255,255,255,0.07)"}`,
+                                  fontWeight: isActive ? 600 : 400,
+                                  opacity: isActive ? 1 : 0.6,
+                                }}
+                              >
+                                {action.label}
+                              </button>
+                            );
+                          })}
+                        </div>
                       </div>
                     ))}
                   </div>
