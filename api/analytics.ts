@@ -9,7 +9,10 @@ const getClient = (() => {
       const url = process.env.STORAGE_REDIS_URL!;
       client = new Redis(url, {
         tls: url.startsWith("rediss://") ? { rejectUnauthorized: false } : undefined,
-        maxRetriesPerRequest: 2,
+        connectTimeout: 5000,
+        commandTimeout: 4000,
+        maxRetriesPerRequest: 1,
+        enableReadyCheck: false,
       });
     }
     return client;
@@ -22,6 +25,11 @@ function formatDay(dateStr: string): string {
 }
 
 export default async function handler(): Promise<Response> {
+  const url = process.env.STORAGE_REDIS_URL;
+  if (!url) {
+    return Response.json({ error: "redis_not_configured" }, { status: 503 });
+  }
+
   try {
     const r = getClient();
     const days = [];
