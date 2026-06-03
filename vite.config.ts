@@ -43,9 +43,16 @@ export default defineConfig(({ mode }) => {
 
               if (token) proxyReq.setHeader('Authorization', `Bearer ${token}`);
 
-              const qs = new URLSearchParams(proxyReq.path.split('?')[1] ?? '');
+              const raw = new URLSearchParams(proxyReq.path.split('?')[1] ?? '');
+              const now     = Date.now();
+              const startMs = Number(raw.get('startAt') ?? now - 14 * 24 * 60 * 60 * 1000);
+              const endMs   = Number(raw.get('endAt')   ?? now);
+
+              const qs = new URLSearchParams();
               if (projectId) qs.set('projectId', projectId);
               if (teamId)    qs.set('teamId', teamId);
+              qs.set('from',        new Date(startMs).toISOString());
+              qs.set('to',          new Date(endMs).toISOString());
               qs.set('environment', 'production');
               qs.set('granularity', '1d');
 

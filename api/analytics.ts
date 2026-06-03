@@ -10,13 +10,14 @@ export default async function handler(request: Request): Promise<Response> {
   }
 
   const { searchParams } = new URL(request.url);
-  const endAt   = searchParams.get("endAt")   ?? String(Date.now());
-  const startAt = searchParams.get("startAt") ?? String(Date.now() - 14 * 24 * 60 * 60 * 1000);
+  const now     = Date.now();
+  const endMs   = Number(searchParams.get("endAt")   ?? now);
+  const startMs = Number(searchParams.get("startAt") ?? now - 14 * 24 * 60 * 60 * 1000);
 
   const params = new URLSearchParams({
     projectId,
-    startAt,
-    endAt,
+    from:        new Date(startMs).toISOString(),
+    to:          new Date(endMs).toISOString(),
     environment: "production",
     granularity: "1d",
     ...(teamId ? { teamId } : {}),
