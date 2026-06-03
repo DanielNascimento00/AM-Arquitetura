@@ -12,16 +12,10 @@ interface AnalyticsResult {
   error: boolean;
 }
 
-function formatDay(dateStr: string): string {
-  const d = new Date(dateStr);
-  return `${String(d.getDate()).padStart(2, "0")}/${String(d.getMonth() + 1).padStart(2, "0")}`;
-}
-
 function extractRows(json: unknown): { key: string; total: number }[] {
   if (!json || typeof json !== "object") return [];
   const j = json as Record<string, unknown>;
 
-  // Tenta os formatos possíveis da API do Vercel
   const candidates = [
     j["data"],
     (j["data"] as Record<string, unknown>)?.["result"],
@@ -47,28 +41,22 @@ export function useVercelAnalytics(): AnalyticsResult {
   const [error, setError] = useState(false);
 
   useEffect(() => {
-    const endAt   = Date.now();
-    const startAt = endAt - 14 * 24 * 60 * 60 * 1000;
-
-    fetch(`/api/analytics?startAt=${startAt}&endAt=${endAt}`)
+    fetch("/api/analytics")
       .then((r) => {
         if (!r.ok) throw new Error(`${r.status}`);
         return r.json();
       })
       .then((json) => {
-        console.log("[Vercel Analytics] resposta bruta:", JSON.stringify(json, null, 2));
         const rows = extractRows(json);
-        console.log("[Vercel Analytics] linhas extraídas:", rows);
         const days = rows
           .filter((r) => r.key)
-          .map((r) => ({ day: formatDay(r.key), visits: r.total }));
+          .map((r) => ({ day: r.key, visits: r.total }));
         const total = days.reduce((s, d) => s + d.visits, 0);
         setLast14Days(days);
         setTotalViews(total);
         setLoading(false);
       })
-      .catch((err) => {
-        console.error("[Vercel Analytics] erro:", err);
+      .catch(() => {
         setLoading(false);
         setError(true);
       });

@@ -2,9 +2,10 @@ import { useState, useRef, useCallback } from "react";
 import { motion, AnimatePresence } from "motion/react";
 import {
   LayoutDashboard, Images, LogOut, Eye, Users, TrendingUp,
-  Upload, Star, Trash2, Pencil, Menu, X, ArrowUpRight, ArrowDownRight,
+  Upload, Star, Trash2, Pencil, Menu, X, ArrowUpRight,
   Mail, Phone, Calendar, MoreHorizontal, GripVertical,
 } from "lucide-react";
+import { useVercelAnalytics } from "@/app/hooks/useVercelAnalytics";
 import {
   AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip,
   ResponsiveContainer,
@@ -12,7 +13,6 @@ import {
 import { Link } from "react-router";
 import { ImageWithFallback } from "@/app/components/figma/ImageWithFallback";
 import logoImg from "@/imports/image-2.png";
-import { useVercelAnalytics } from "@/app/hooks/useVercelAnalytics";
 
 /* ─── Mock data ──────────────────────────────────────────── */
 
@@ -142,7 +142,6 @@ function CustomTooltip({ active, payload, label }: { active?: boolean; payload?:
 type Tab = "dashboard" | "gallery";
 
 export function AdminPage() {
-  const { totalViews, last14Days, loading: analyticsLoading, error: analyticsError } = useVercelAnalytics();
   const [activeTab, setActiveTab] = useState<Tab>("dashboard");
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [projects, setProjects] = useState<Project[]>(mockProjects);
@@ -281,22 +280,14 @@ export function AdminPage() {
     setEditingProject(null);
   };
 
-  const visitsDisplay = analyticsLoading
-    ? "..."
-    : analyticsError
-    ? "—"
-    : totalViews.toLocaleString("pt-BR");
-
-  const convRate = analyticsError || totalViews === 0
-    ? "—"
-    : ((leads.length / totalViews) * 100).toFixed(1).replace(".", ",") + "%";
-
+  const { totalViews, last14Days, loading: analyticsLoading } = useVercelAnalytics();
   const chartData = last14Days.length > 0 ? last14Days : visitData;
+  const visitsDisplay = analyticsLoading ? "..." : totalViews.toLocaleString("pt-BR");
 
   const stats = [
-    { icon: Eye, label: "Total de Visitas", value: visitsDisplay, trend: analyticsError ? "sem dados" : "últimos 14 dias", up: true, sub: "Vercel Analytics" },
-    { icon: Users, label: "Leads Gerados", value: String(leads.length), trend: `${leads.filter((l) => l.status === "novo").length} novos`, up: true, sub: "este mês" },
-    { icon: TrendingUp, label: "Taxa de Conversão", value: convRate, trend: "", up: true, sub: "leads / visitas" },
+    { icon: Eye,          label: "Total de Visitas",    value: visitsDisplay, trend: "últimos 14 dias", up: true, sub: "acessos ao site" },
+    { icon: Users,        label: "Leads Gerados",        value: String(leads.length), trend: `${leads.filter((l) => l.status === "novo").length} novos`, up: true, sub: "este mês" },
+    { icon: TrendingUp,   label: "Taxa de Conversão",    value: leads.length === 0 ? "—" : ((leads.filter(l => l.status === "fechado").length / leads.length) * 100).toFixed(1).replace(".", ",") + "%", trend: "", up: true, sub: "leads fechados" },
     { icon: MoreHorizontal, label: "Formulários Recebidos", value: String(leads.length), trend: `${leads.filter((l) => l.status === "novo").length} novos`, up: true, sub: "aguardando resposta" },
   ];
 
@@ -491,27 +482,17 @@ export function AdminPage() {
                       style={{ background: "#0C1111", borderColor: "rgba(255,255,255,0.05)" }}
                     >
                       <div className="flex items-start justify-between mb-4">
-                        <div
-                          className="w-10 h-10 rounded-full flex items-center justify-center"
-                          style={{ background: "rgba(181,159,120,0.1)" }}
-                        >
+                        <div className="w-10 h-10 rounded-full flex items-center justify-center" style={{ background: "rgba(181,159,120,0.1)" }}>
                           <s.icon size={18} style={{ color: "#B59F78" }} />
                         </div>
-                        <span
-                          className="flex items-center gap-1 text-xs px-2 py-1 rounded-full"
-                          style={{
-                            color: s.up ? "#4ade80" : "#f87171",
-                            background: s.up ? "rgba(74,222,128,0.1)" : "rgba(248,113,113,0.1)",
-                            fontWeight: 500,
-                          }}
-                        >
-                          {s.up ? <ArrowUpRight size={12} /> : <ArrowDownRight size={12} />}
-                          {s.trend}
-                        </span>
+                        {s.trend && (
+                          <span className="flex items-center gap-1 text-xs px-2 py-1 rounded-full" style={{ color: "#4ade80", background: "rgba(74,222,128,0.1)", fontWeight: 500 }}>
+                            <ArrowUpRight size={12} />
+                            {s.trend}
+                          </span>
+                        )}
                       </div>
-                      <p className="text-[#F2F0EA] text-2xl mb-0.5" style={{ fontWeight: 400 }}>
-                        {s.value}
-                      </p>
+                      <p className="text-[#F2F0EA] text-2xl mb-0.5" style={{ fontWeight: 400 }}>{s.value}</p>
                       <p className="text-[#A7A39B] text-xs" style={{ fontWeight: 400 }}>{s.label}</p>
                       <p className="text-[#A7A39B]/50 text-[11px] mt-0.5" style={{ fontWeight: 400 }}>{s.sub}</p>
                     </motion.div>
@@ -537,7 +518,7 @@ export function AdminPage() {
                     </div>
                     <div className="text-right">
                       <p className="text-[#F2F0EA] text-2xl" style={{ fontWeight: 400 }}>
-                        {analyticsLoading ? "..." : analyticsError ? "—" : totalViews.toLocaleString("pt-BR")}
+                        {analyticsLoading ? "..." : chartData.reduce((s, d) => s + d.visits, 0).toLocaleString("pt-BR")}
                       </p>
                       <p className="text-[#A7A39B] text-xs flex items-center justify-end gap-1 mt-0.5" style={{ fontWeight: 400 }}>
                         últimos 14 dias

@@ -16,6 +16,10 @@ import { AdminPage } from "./pages/AdminPage";
 
 function LandingPage() {
   useEffect(() => {
+    fetch("/api/track", { method: "POST" }).catch(() => {});
+  }, []);
+
+  useEffect(() => {
     document.querySelectorAll('a[href^="#"]').forEach((anchor) => {
       anchor.addEventListener("click", function (e) {
         e.preventDefault();

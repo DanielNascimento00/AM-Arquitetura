@@ -2,6 +2,7 @@ import { defineConfig, loadEnv } from 'vite'
 import path from 'path'
 import tailwindcss from '@tailwindcss/vite'
 import react from '@vitejs/plugin-react'
+import Redis from 'ioredis'
 
 function figmaAssetResolver() {
   return {
@@ -18,61 +19,58 @@ function figmaAssetResolver() {
 export default defineConfig(({ mode }) => {
   const env = loadEnv(mode, process.cwd(), '');
 
+  let redisClient: Redis | null = null;
+  const getRedis = () => {
+    if (!redisClient) {
+      const url = env.STORAGE_REDIS_URL;
+      if (!url) return null;
+      redisClient = new Redis(url, {
+        tls: url.startsWith('rediss://') ? { rejectUnauthorized: false } : undefined,
+        maxRetriesPerRequest: 2,
+      });
+    }
+    return redisClient;
+  };
+
   const analyticsDevPlugin = {
     name: 'analytics-dev-proxy',
     configureServer(server: import('vite').ViteDevServer) {
-      server.middlewares.use('/api/analytics', async (req: import('http').IncomingMessage, res: import('http').ServerResponse) => {
-        const token     = env.VITE_VERCEL_TOKEN     ?? '';
-        const projectId = env.VITE_VERCEL_PROJECT_ID ?? '';
-        const teamId    = env.VITE_VERCEL_TEAM_ID    ?? '';
-
-        if (!token || !projectId) {
+      // GET /api/analytics — retorna últimos 14 dias
+      server.middlewares.use('/api/analytics', async (_req: import('http').IncomingMessage, res: import('http').ServerResponse) => {
+        const r = getRedis();
+        if (!r) {
           res.writeHead(500, { 'Content-Type': 'application/json' });
-          res.end(JSON.stringify({ error: 'not_configured' }));
+          res.end(JSON.stringify({ error: 'STORAGE_REDIS_URL não configurado no .env' }));
           return;
         }
-
-        const qs      = (req.url ?? '').split('?')[1] ?? '';
-        const params  = new URLSearchParams(qs);
-        const now     = Date.now();
-        const startMs = Number(params.get('startAt') ?? now - 14 * 24 * 60 * 60 * 1000);
-        const endMs   = Number(params.get('endAt')   ?? now);
-
-        const vercelParams = new URLSearchParams({
-          projectId,
-          from:        new Date(startMs).toISOString(),
-          to:          new Date(endMs).toISOString(),
-          environment: 'production',
-          granularity: '1d',
-          ...(teamId ? { teamId } : {}),
-        });
-
         try {
-          // Busca o ownerId da conta a partir do token
-          const userRes  = await fetch('https://vercel.com/api/v2/user', {
-            headers: { Authorization: `Bearer ${token}` },
-          });
-          const userData = await userRes.json() as Record<string, Record<string, string>>;
-          const ownerId  = userData?.user?.id ?? '';
-          console.log('[Analytics] ownerId:', ownerId);
-
-          if (ownerId) vercelParams.set('ownerId', ownerId);
-
-          const apiUrl = `https://vercel.com/api/web-analytics/timeseries?${vercelParams}`;
-          console.log('[Analytics] →', apiUrl);
-
-          const apiRes = await fetch(apiUrl, {
-            headers: { Authorization: `Bearer ${token}` },
-          });
-          const text = await apiRes.text();
-          console.log('[Analytics] status:', apiRes.status, '| body:', text.slice(0, 600));
-          res.writeHead(apiRes.status, { 'Content-Type': 'application/json' });
-          res.end(text);
+          const days = [];
+          for (let i = 13; i >= 0; i--) {
+            const d = new Date();
+            d.setDate(d.getDate() - i);
+            const dateStr = d.toISOString().split('T')[0];
+            const [, month, day] = dateStr.split('-');
+            const count = Number((await r.get(`visits:${dateStr}`)) ?? 0);
+            days.push({ key: `${day}/${month}`, total: count });
+          }
+          res.writeHead(200, { 'Content-Type': 'application/json' });
+          res.end(JSON.stringify({ data: days }));
         } catch (err) {
-          console.error('[Analytics] erro:', err);
           res.writeHead(500, { 'Content-Type': 'application/json' });
-          res.end(JSON.stringify({ error: 'proxy_error' }));
+          res.end(JSON.stringify({ error: String(err) }));
         }
+      });
+
+      // POST /api/track — incrementa visita do dia
+      server.middlewares.use('/api/track', async (_req: import('http').IncomingMessage, res: import('http').ServerResponse) => {
+        const r = getRedis();
+        if (r) {
+          const key = `visits:${new Date().toISOString().split('T')[0]}`;
+          await r.incr(key).catch(() => {});
+          await r.expire(key, 7_776_000).catch(() => {});
+        }
+        res.writeHead(200, { 'Content-Type': 'application/json' });
+        res.end(JSON.stringify({ ok: true }));
       });
     },
   };
