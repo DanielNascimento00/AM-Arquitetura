@@ -2,7 +2,7 @@ import { useState, useRef, useCallback } from "react";
 import { motion, AnimatePresence } from "motion/react";
 import {
   LayoutDashboard, Images, LogOut, Eye, Users, TrendingUp,
-  Upload, Star, Trash2, Menu, X, ArrowUpRight, ArrowDownRight,
+  Upload, Star, Trash2, Pencil, Menu, X, ArrowUpRight, ArrowDownRight,
   Mail, Phone, Calendar, MoreHorizontal, GripVertical,
 } from "lucide-react";
 import {
@@ -155,6 +155,17 @@ export function AdminPage() {
   const mainFileRef = useRef<HTMLInputElement>(null);
   const subFileRef = useRef<HTMLInputElement>(null);
 
+  // Edit modal state
+  const [editingProject, setEditingProject] = useState<Project | null>(null);
+  const [editMainPreview, setEditMainPreview] = useState<string | null>(null);
+  const [editMainGradient, setEditMainGradient] = useState<string>("");
+  const [editSubSlots, setEditSubSlots] = useState<(SubPhoto | null)[]>([null, null, null, null]);
+  const [editActiveSubSlot, setEditActiveSubSlot] = useState<number | null>(null);
+  const [editIsDragging, setEditIsDragging] = useState(false);
+  const [editForm, setEditForm] = useState({ title: "", description: "", category: "arquitetura" as PhotoCategory, order: 1, featured: false });
+  const editMainFileRef = useRef<HTMLInputElement>(null);
+  const editSubFileRef = useRef<HTMLInputElement>(null);
+
   const readFile = (file: File): Promise<string> =>
     new Promise((res) => { const r = new FileReader(); r.onload = (e) => res(e.target?.result as string); r.readAsDataURL(file); });
 
@@ -216,6 +227,56 @@ export function AdminPage() {
   const deleteProject = (id: number) => {
     setProjects((prev) => prev.filter((p) => p.id !== id));
     if (expandedId === id) setExpandedId(null);
+  };
+
+  const openEdit = (project: Project) => {
+    setEditMainPreview(project.mainPhoto.preview);
+    setEditMainGradient(project.mainPhoto.gradient);
+    const slots: (SubPhoto | null)[] = [null, null, null, null];
+    project.subPhotos.forEach((sub, i) => { if (i < 4) slots[i] = sub; });
+    setEditSubSlots(slots);
+    setEditForm({ title: project.title, description: project.description, category: project.category, order: project.order, featured: project.featured });
+    setEditingProject(project);
+  };
+
+  const handleEditMainFile = useCallback(async (file: File) => {
+    if (!file.type.startsWith("image/")) return;
+    setEditMainPreview(await readFile(file));
+    setEditMainGradient("");
+  }, []);
+
+  const openEditSubSlot = (slot: number) => {
+    setEditActiveSubSlot(slot);
+    editSubFileRef.current?.click();
+  };
+
+  const handleEditSubFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file || editActiveSubSlot === null) return;
+    const url = await readFile(file);
+    const newSub: SubPhoto = { id: Date.now(), preview: url, gradient: "" };
+    setEditSubSlots((prev) => prev.map((s, i) => i === editActiveSubSlot ? newSub : s));
+    e.target.value = "";
+  };
+
+  const removeEditSubSlot = (slot: number) =>
+    setEditSubSlots((prev) => prev.map((s, i) => i === slot ? null : s));
+
+  const handleEditSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!editingProject) return;
+    const updatedProject: Project = {
+      ...editingProject,
+      title: editForm.title,
+      description: editForm.description,
+      category: editForm.category,
+      order: editForm.order,
+      featured: editForm.featured,
+      mainPhoto: { preview: editMainPreview, gradient: editMainGradient },
+      subPhotos: editSubSlots.filter((s): s is SubPhoto => s !== null),
+    };
+    setProjects((prev) => prev.map((p) => p.id === editingProject.id ? updatedProject : p).sort((a, b) => a.order - b.order));
+    setEditingProject(null);
   };
 
   const stats = [
@@ -948,6 +1009,11 @@ export function AdminPage() {
                                   style={{ background: "rgba(181,159,120,0.25)", backdropFilter: "blur(8px)" }} title="Alternar destaque">
                                   <Star size={16} style={{ color: "#B59F78", fill: project.featured ? "#B59F78" : "none" }} />
                                 </button>
+                                <button onClick={() => openEdit(project)}
+                                  className="w-9 h-9 rounded-full flex items-center justify-center hover:scale-110 transition-transform"
+                                  style={{ background: "rgba(255,255,255,0.15)", backdropFilter: "blur(8px)" }} title="Editar projeto">
+                                  <Pencil size={15} style={{ color: "#F2F0EA" }} />
+                                </button>
                                 <button onClick={() => deleteProject(project.id)}
                                   className="w-9 h-9 rounded-full flex items-center justify-center hover:scale-110 transition-transform"
                                   style={{ background: "rgba(248,113,113,0.25)", backdropFilter: "blur(8px)" }} title="Excluir projeto">
@@ -1064,6 +1130,201 @@ export function AdminPage() {
           </AnimatePresence>
         </main>
       </div>
+
+      {/* ── Edit Modal ── */}
+      <AnimatePresence>
+        {editingProject && (
+          <>
+            <motion.div
+              initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
+              onClick={() => setEditingProject(null)}
+              className="fixed inset-0 z-50 bg-black/70"
+              style={{ backdropFilter: "blur(8px)" }}
+            />
+            <motion.div
+              initial={{ opacity: 0, scale: 0.96, y: 24 }}
+              animate={{ opacity: 1, scale: 1, y: 0 }}
+              exit={{ opacity: 0, scale: 0.96, y: 24 }}
+              transition={{ duration: 0.35, ease: [0.22, 1, 0.36, 1] }}
+              className="fixed inset-0 z-50 flex items-center justify-center p-4 pointer-events-none"
+            >
+              <div
+                className="w-full max-w-3xl max-h-[90vh] overflow-y-auto rounded-[24px] border pointer-events-auto"
+                style={{ background: "#0C1111", borderColor: "rgba(255,255,255,0.08)", boxShadow: "0 32px 80px rgba(0,0,0,0.6)" }}
+                onClick={(e) => e.stopPropagation()}
+              >
+                {/* Header */}
+                <div className="flex items-center justify-between px-8 py-6 border-b" style={{ borderColor: "rgba(255,255,255,0.05)" }}>
+                  <div>
+                    <p className="text-[#B59F78] text-[11px] tracking-[0.12em] uppercase mb-1" style={{ fontWeight: 500 }}>EDITAR PROJETO</p>
+                    <h2 className="text-[#F2F0EA] text-xl" style={{ fontWeight: 400 }}>{editingProject.title}</h2>
+                  </div>
+                  <button
+                    onClick={() => setEditingProject(null)}
+                    className="w-9 h-9 rounded-full flex items-center justify-center transition-all duration-200 hover:bg-white/10"
+                    style={{ color: "#A7A39B" }}
+                  >
+                    <X size={18} />
+                  </button>
+                </div>
+
+                {/* Hidden inputs */}
+                <input ref={editMainFileRef} type="file" accept="image/*" className="hidden"
+                  onChange={(e) => { const f = e.target.files?.[0]; if (f) handleEditMainFile(f); }} />
+                <input ref={editSubFileRef} type="file" accept="image/*" className="hidden"
+                  onChange={handleEditSubFileChange} />
+
+                {/* Form */}
+                <form onSubmit={handleEditSubmit} className="p-8">
+                  <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+
+                    {/* LEFT: fotos */}
+                    <div className="space-y-3">
+                      <p className="text-[#A7A39B] text-xs tracking-wide uppercase" style={{ fontWeight: 500 }}>Foto Principal</p>
+                      <div
+                        className="relative flex flex-col items-center justify-center rounded-[16px] border-2 border-dashed cursor-pointer transition-all duration-300 overflow-hidden"
+                        style={{ minHeight: "180px", borderColor: editIsDragging ? "#B59F78" : "rgba(181,159,120,0.25)", background: editIsDragging ? "rgba(181,159,120,0.05)" : "rgba(255,255,255,0.02)" }}
+                        onDragOver={(e) => { e.preventDefault(); setEditIsDragging(true); }}
+                        onDragLeave={() => setEditIsDragging(false)}
+                        onDrop={(e) => { e.preventDefault(); setEditIsDragging(false); const f = e.dataTransfer.files[0]; if (f) handleEditMainFile(f); }}
+                        onClick={() => editMainFileRef.current?.click()}
+                      >
+                        {editMainPreview ? (
+                          <>
+                            <img src={editMainPreview} alt="Foto principal" className="absolute inset-0 w-full h-full object-cover" />
+                            <div className="absolute inset-0 bg-black/40 flex items-center justify-center opacity-0 hover:opacity-100 transition-opacity duration-300">
+                              <div className="flex flex-col items-center gap-2 text-white"><Upload size={20} /><span className="text-sm" style={{ fontWeight: 500 }}>Trocar</span></div>
+                            </div>
+                          </>
+                        ) : editMainGradient ? (
+                          <>
+                            <div className="absolute inset-0" style={{ background: editMainGradient }} />
+                            <div className="absolute inset-0 bg-black/40 flex items-center justify-center opacity-0 hover:opacity-100 transition-opacity duration-300">
+                              <div className="flex flex-col items-center gap-2 text-white"><Upload size={20} /><span className="text-sm" style={{ fontWeight: 500 }}>Trocar</span></div>
+                            </div>
+                          </>
+                        ) : (
+                          <div className="flex flex-col items-center gap-3 p-6 text-center">
+                            <div className="w-10 h-10 rounded-full flex items-center justify-center" style={{ background: "rgba(181,159,120,0.1)" }}>
+                              <Upload size={18} style={{ color: "#B59F78" }} />
+                            </div>
+                            <p className="text-[#F2F0EA] text-sm" style={{ fontWeight: 500 }}>Arraste ou clique</p>
+                          </div>
+                        )}
+                      </div>
+
+                      <p className="text-[#A7A39B] text-xs tracking-wide uppercase pt-1" style={{ fontWeight: 500 }}>
+                        Subfotos <span style={{ color: "rgba(167,163,155,0.5)", textTransform: "none", letterSpacing: 0 }}>(até 4)</span>
+                      </p>
+                      <div className="grid grid-cols-4 gap-2">
+                        {[0, 1, 2, 3].map((slot) => {
+                          const sub = editSubSlots[slot];
+                          return (
+                            <div key={slot} className="relative group">
+                              <div
+                                className="relative rounded-[10px] overflow-hidden cursor-pointer transition-all duration-200 border"
+                                style={{ aspectRatio: "1/1", background: sub ? "transparent" : "rgba(255,255,255,0.03)", borderColor: sub ? "rgba(181,159,120,0.3)" : "rgba(255,255,255,0.06)", borderStyle: sub ? "solid" : "dashed" }}
+                                onClick={() => openEditSubSlot(slot)}
+                              >
+                                {sub?.preview ? (
+                                  <img src={sub.preview} alt="" className="w-full h-full object-cover" />
+                                ) : sub?.gradient ? (
+                                  <div className="w-full h-full" style={{ background: sub.gradient }} />
+                                ) : (
+                                  <div className="w-full h-full flex items-center justify-center">
+                                    <span style={{ color: "rgba(181,159,120,0.4)", fontSize: "20px", lineHeight: 1 }}>+</span>
+                                  </div>
+                                )}
+                              </div>
+                              {sub && (
+                                <button type="button" onClick={() => removeEditSubSlot(slot)}
+                                  className="absolute -top-1.5 -right-1.5 w-5 h-5 rounded-full flex items-center justify-center transition-all duration-200 opacity-0 group-hover:opacity-100"
+                                  style={{ background: "#f87171", zIndex: 10 }}>
+                                  <X size={10} style={{ color: "#fff" }} />
+                                </button>
+                              )}
+                              <span className="absolute bottom-1 left-1 text-[9px] px-1 rounded"
+                                style={{ background: "rgba(0,0,0,0.55)", color: "#A7A39B", fontWeight: 500 }}>{slot + 1}</span>
+                            </div>
+                          );
+                        })}
+                      </div>
+                    </div>
+
+                    {/* RIGHT: campos */}
+                    <div className="space-y-4">
+                      <div className="relative">
+                        <input type="text" id="edit-title" value={editForm.title}
+                          onChange={(e) => setEditForm({ ...editForm, title: e.target.value })}
+                          placeholder=" "
+                          className="w-full pl-5 pr-5 pt-6 pb-3 rounded-[14px] text-[#F2F0EA] focus:outline-none peer transition-all duration-200"
+                          style={{ background: "#0E1414", border: "1px solid rgba(255,255,255,0.06)", fontFamily: "Manrope, sans-serif", fontSize: "15px" }}
+                          required />
+                        <label htmlFor="edit-title"
+                          className="absolute left-5 top-[9px] text-[10px] tracking-[0.08em] text-[#B59F78] pointer-events-none peer-placeholder-shown:top-1/2 peer-placeholder-shown:-translate-y-1/2 peer-placeholder-shown:text-[15px] peer-placeholder-shown:text-[#A7A39B] peer-placeholder-shown:tracking-normal transition-all duration-300"
+                          style={{ fontWeight: 400 }}>Título do projeto</label>
+                      </div>
+
+                      <div className="relative">
+                        <textarea id="edit-desc" value={editForm.description}
+                          onChange={(e) => setEditForm({ ...editForm, description: e.target.value })}
+                          placeholder=" " rows={3}
+                          className="w-full pl-5 pr-5 pt-6 pb-3 rounded-[14px] text-[#F2F0EA] focus:outline-none resize-none peer transition-all duration-200"
+                          style={{ background: "#0E1414", border: "1px solid rgba(255,255,255,0.06)", fontFamily: "Manrope, sans-serif", fontSize: "15px" }} />
+                        <label htmlFor="edit-desc"
+                          className="absolute left-5 top-[9px] text-[10px] tracking-[0.08em] text-[#B59F78] pointer-events-none peer-placeholder-shown:top-5 peer-placeholder-shown:text-[15px] peer-placeholder-shown:text-[#A7A39B] peer-placeholder-shown:tracking-normal transition-all duration-300"
+                          style={{ fontWeight: 400 }}>Descrição</label>
+                      </div>
+
+                      <div className="flex gap-3">
+                        {(["arquitetura", "marcenaria"] as PhotoCategory[]).map((cat) => {
+                          const active = editForm.category === cat;
+                          const cfg = categoryConfig[cat];
+                          return (
+                            <button key={cat} type="button"
+                              onClick={() => setEditForm({ ...editForm, category: cat })}
+                              className="flex-1 py-3 rounded-[14px] text-sm transition-all duration-200"
+                              style={{ background: active ? cfg.bg : "#0E1414", border: `1px solid ${active ? cfg.color + "55" : "rgba(255,255,255,0.06)"}`, color: active ? cfg.color : "#A7A39B", fontWeight: active ? 500 : 400 }}>
+                              {cfg.label}
+                            </button>
+                          );
+                        })}
+                      </div>
+
+                      <div className="flex items-center gap-4">
+                        <div className="relative flex-1">
+                          <input type="number" id="edit-order" value={editForm.order} min={1}
+                            onChange={(e) => setEditForm({ ...editForm, order: Number(e.target.value) })}
+                            placeholder=" "
+                            className="w-full pl-5 pr-5 pt-6 pb-3 rounded-[14px] text-[#F2F0EA] focus:outline-none peer transition-all duration-200"
+                            style={{ background: "#0E1414", border: "1px solid rgba(255,255,255,0.06)", fontFamily: "Manrope, sans-serif", fontSize: "15px" }} />
+                          <label htmlFor="edit-order"
+                            className="absolute left-5 top-[9px] text-[10px] tracking-[0.08em] text-[#B59F78] pointer-events-none peer-placeholder-shown:top-1/2 peer-placeholder-shown:-translate-y-1/2 peer-placeholder-shown:text-[15px] peer-placeholder-shown:text-[#A7A39B] peer-placeholder-shown:tracking-normal transition-all duration-300"
+                            style={{ fontWeight: 400 }}>Ordem</label>
+                        </div>
+                        <button type="button"
+                          onClick={() => setEditForm({ ...editForm, featured: !editForm.featured })}
+                          className="flex items-center gap-2.5 px-4 py-3 rounded-[14px] transition-all duration-300 flex-shrink-0"
+                          style={{ background: editForm.featured ? "rgba(181,159,120,0.12)" : "#0E1414", border: `1px solid ${editForm.featured ? "rgba(181,159,120,0.3)" : "rgba(255,255,255,0.06)"}` }}>
+                          <Star size={16} style={{ color: editForm.featured ? "#B59F78" : "#A7A39B", fill: editForm.featured ? "#B59F78" : "none" }} />
+                          <span className="text-sm whitespace-nowrap" style={{ color: editForm.featured ? "#B59F78" : "#A7A39B", fontWeight: editForm.featured ? 500 : 400 }}>Destaque</span>
+                        </button>
+                      </div>
+
+                      <motion.button type="submit"
+                        whileHover={{ scale: 1.01, y: -1 }} whileTap={{ scale: 0.99 }}
+                        className="w-full py-[14px] rounded-full flex items-center justify-center gap-2 transition-all duration-300 mt-2"
+                        style={{ background: "#B59F78", color: "#050808", fontWeight: 500, fontSize: "15px", letterSpacing: "0.03em", boxShadow: "0 10px 30px rgba(181,159,120,0.2)" }}>
+                        Salvar alterações
+                      </motion.button>
+                    </div>
+                  </div>
+                </form>
+              </div>
+            </motion.div>
+          </>
+        )}
+      </AnimatePresence>
     </div>
   );
 }
