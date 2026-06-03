@@ -52,25 +52,7 @@ export function LoginPage() {
           }}
         />
 
-        {/* "A.M" watermark */}
-        <div className="absolute inset-0 flex items-center justify-center pointer-events-none z-20 overflow-hidden">
-          <motion.span
-            initial={{ opacity: 0, scale: 0.92 }}
-            animate={{ opacity: 1, scale: 1 }}
-            transition={{ duration: 2, delay: 0.6, ease: "easeOut" }}
-            className="select-none leading-none tracking-tighter"
-            style={{
-              fontSize: "clamp(180px, 28vw, 420px)",
-              fontWeight: 700,
-              color: "#F2F0EA",
-              opacity: 0.045,
-            }}
-          >
-            A.M
-          </motion.span>
-        </div>
-
-        {/* Top logo */}
+{/* Top logo */}
         <div className="relative z-30 p-10">
           <ImageWithFallback
             src={logoImg}
@@ -79,37 +61,22 @@ export function LoginPage() {
           />
         </div>
 
-        {/* Floating quote card */}
+        {/* Floating quote */}
         <motion.div
-          initial={{ opacity: 0, y: 20 }}
+          initial={{ opacity: 0, y: 16 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.9, delay: 1.0, ease: [0.22, 1, 0.36, 1] }}
-          className="relative z-30 mx-10 my-auto p-8 rounded-[20px] border border-white/8"
-          style={{
-            background: "rgba(12, 17, 17, 0.55)",
-            backdropFilter: "blur(20px) saturate(180%)",
-            WebkitBackdropFilter: "blur(20px) saturate(180%)",
-            boxShadow: "0 20px 60px rgba(0,0,0,0.35), inset 0 1px 0 rgba(255,255,255,0.06)",
-          }}
+          className="relative z-30 mx-10 my-auto"
         >
-          <div className="flex items-start gap-3 mb-5">
-            <div
-              className="w-1 rounded-full flex-shrink-0 mt-1"
-              style={{ height: "52px", background: "linear-gradient(to bottom, #B59F78, rgba(181,159,120,0.2))" }}
-            />
-            <p
-              className="text-[#F2F0EA] text-xl leading-snug"
-              style={{ fontWeight: 300, letterSpacing: "-0.01em" }}
-            >
-              "Cada espaço conta uma história. A nossa missão é fazer com que a sua seja inesquecível."
-            </p>
-          </div>
-          <div className="flex items-center gap-3 pl-4">
-            <div className="w-8 h-px bg-[#B59F78]/60" />
-            <span className="text-[#B59F78] text-xs tracking-[0.12em] uppercase" style={{ fontWeight: 500 }}>
-              A.M Arquitetura & Marcenaria
-            </span>
-          </div>
+          <div className="w-8 h-px bg-[#B59F78]/50 mb-6" />
+          <p
+            className="text-[#F2F0EA] text-lg leading-relaxed"
+            style={{ fontWeight: 300, letterSpacing: "0.01em", opacity: 0.75 }}
+          >
+            Cada espaço conta uma história.
+            <br />
+            A nossa missão é fazer com que a sua seja inesquecível.
+          </p>
         </motion.div>
 
         {/* Bottom content */}
@@ -123,16 +90,16 @@ export function LoginPage() {
             className="text-[#B59F78] text-[11px] tracking-[0.15em] uppercase mb-4"
             style={{ fontWeight: 500 }}
           >
-            PORTAL DO CLIENTE
+            PORTAL DO ADMINISTRADOR
           </p>
           <h2
             className="text-[#F2F0EA] text-4xl xl:text-[44px] mb-4"
             style={{ fontWeight: 300, letterSpacing: "-0.02em", lineHeight: 1.18 }}
           >
-            Acompanhe seu projeto com exclusividade.
+            Gerencie seu escritório com exclusividade.
           </h2>
           <p className="text-[#A7A39B] text-base leading-relaxed max-w-[480px]" style={{ fontWeight: 400 }}>
-            Plantas, cronogramas, materiais e o progresso completo do seu ambiente em um só lugar.
+            Gerencie projetos, clientes, cronogramas e materiais em um só lugar.
           </p>
 
           {/* Stats row */}
@@ -224,7 +191,7 @@ export function LoginPage() {
               className="text-[#B59F78] text-[11px] tracking-[0.15em] uppercase mb-5"
               style={{ fontWeight: 500 }}
             >
-              PORTAL DO CLIENTE
+              PORTAL DO ADMINISTRADOR
             </p>
             <h1
               className="text-[#F2F0EA] text-[38px] md:text-[44px] mb-3"
@@ -235,7 +202,7 @@ export function LoginPage() {
               <span style={{ color: "#B59F78", fontWeight: 400 }}>de volta.</span>
             </h1>
             <p className="text-[#A7A39B] text-base mt-2" style={{ fontWeight: 400 }}>
-              Acesse sua conta para acompanhar seu projeto.
+              Acesse o painel para gerenciar projetos e clientes.
             </p>
           </motion.div>
 
@@ -379,41 +346,6 @@ export function LoginPage() {
             </motion.button>
           </motion.form>
 
-          {/* Divider */}
-          <motion.div
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            transition={{ duration: 0.6, delay: 0.75 }}
-            className="flex items-center gap-4 my-7"
-          >
-            <div className="flex-1 h-px" style={{ background: "rgba(255,255,255,0.05)" }} />
-            <span
-              className="text-[10px] tracking-[0.14em] uppercase"
-              style={{ color: "#A7A39B", fontWeight: 400 }}
-            >
-              ou
-            </span>
-            <div className="flex-1 h-px" style={{ background: "rgba(255,255,255,0.05)" }} />
-          </motion.div>
-
-          {/* Register CTA */}
-          <motion.div
-            initial={{ opacity: 0, y: 10 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.6, delay: 0.85 }}
-            className="text-center"
-          >
-            <p className="text-sm mb-2" style={{ color: "#A7A39B", fontWeight: 400 }}>
-              Ainda não tem uma conta?
-            </p>
-            <a
-              href="/#contact"
-              className="text-sm transition-colors duration-300 hover:text-[#C8B28A]"
-              style={{ color: "#B59F78", fontWeight: 500 }}
-            >
-              Inicie seu projeto conosco →
-            </a>
-          </motion.div>
         </div>
 
         {/* Bottom footer */}
@@ -422,7 +354,7 @@ export function LoginPage() {
           style={{ borderColor: "rgba(255,255,255,0.05)" }}
         >
           <p className="text-center text-xs" style={{ color: "rgba(167,163,155,0.5)", fontWeight: 400 }}>
-            © 2024 A.M Arquitetura & Marcenaria. Todos os direitos reservados.
+            © {new Date().getFullYear()} A.M Arquitetura & Marcenaria. Todos os direitos reservados.
           </p>
         </div>
       </motion.div>

@@ -54,15 +54,21 @@ const mockLeads: Lead[] = [
 
 type PhotoCategory = "arquitetura" | "marcenaria";
 
-interface Photo {
+interface SubPhoto {
+  id: number;
+  preview: string | null;
+  gradient: string;
+}
+
+interface Project {
   id: number;
   title: string;
   description: string;
   category: PhotoCategory;
   order: number;
   featured: boolean;
-  preview: string | null;
-  gradient: string;
+  mainPhoto: { preview: string | null; gradient: string };
+  subPhotos: SubPhoto[];
 }
 
 const categoryConfig: Record<PhotoCategory, { label: string; color: string; bg: string }> = {
@@ -70,13 +76,22 @@ const categoryConfig: Record<PhotoCategory, { label: string; color: string; bg: 
   marcenaria:  { label: "Marcenaria",  color: "#60a5fa", bg: "rgba(96,165,250,0.15)" },
 };
 
-const mockPhotos: Photo[] = [
-  { id: 1, title: "Sala de Estar Contemporânea", description: "Projeto com iluminação cênica e integração de ambientes", category: "arquitetura", order: 1, featured: true,  preview: null, gradient: "linear-gradient(135deg, #1a1a2e 0%, #16213e 50%, #0f3460 100%)" },
-  { id: 2, title: "Cozinha Integrada",           description: "Americana com ilha central e acabamento premium",          category: "arquitetura", order: 2, featured: false, preview: null, gradient: "linear-gradient(135deg, #0d1b2a 0%, #1b263b 50%, #415a77 100%)" },
-  { id: 3, title: "Suíte Master",                description: "Closet integrado com banheira e iluminação indireta",      category: "arquitetura", order: 3, featured: false, preview: null, gradient: "linear-gradient(135deg, #1c0a00 0%, #3d1a00 50%, #6b3a2a 100%)" },
-  { id: 4, title: "Estante Planejada",           description: "Marcenaria sob medida em freijó com nichos abertos",       category: "marcenaria",  order: 4, featured: false, preview: null, gradient: "linear-gradient(135deg, #0a1628 0%, #1a2f4a 50%, #2d4a6e 100%)" },
-  { id: 5, title: "Closet Autoral",              description: "Closet feminino em laca off-white com espelho bisotê",     category: "marcenaria",  order: 5, featured: true,  preview: null, gradient: "linear-gradient(135deg, #0d1a0d 0%, #1a3a1a 50%, #2d5a2d 100%)" },
-  { id: 6, title: "Painel TV com Lareira",       description: "Painel em MDF amadeirado com lareira embutida",            category: "marcenaria",  order: 6, featured: false, preview: null, gradient: "linear-gradient(135deg, #1a1008 0%, #3a2510 50%, #5a3a1a 100%)" },
+const SUB_GRADIENTS = [
+  ["linear-gradient(135deg,#2a2a3e,#1f4470)", "linear-gradient(135deg,#1a2a3e,#2f5480)", "linear-gradient(135deg,#0a1a3e,#1f3470)", "linear-gradient(135deg,#1a3a4e,#2f6470)"],
+  ["linear-gradient(135deg,#1d2b3a,#2d4a5e)", "linear-gradient(135deg,#0d2030,#1d3f55)", "linear-gradient(135deg,#2d3b4a,#3d5a6e)", "linear-gradient(135deg,#0d1b2a,#1d3a4e)"],
+  ["linear-gradient(135deg,#2c1a0a,#5b3a2a)", "linear-gradient(135deg,#1c0a00,#4b2a1a)", "linear-gradient(135deg,#3c2a1a,#6b4a3a)", "linear-gradient(135deg,#0c0a00,#3b1a0a)"],
+  ["linear-gradient(135deg,#1a2838,#2d4a6e)", "linear-gradient(135deg,#0a1828,#1d3a5e)", "linear-gradient(135deg,#2a3848,#3d5a7e)", "linear-gradient(135deg,#0a2038,#1d4a6e)"],
+  ["linear-gradient(135deg,#1d2a1d,#3a5a3a)", "linear-gradient(135deg,#0d1a0d,#2a3a2a)", "linear-gradient(135deg,#2d3a2d,#4a6a4a)", "linear-gradient(135deg,#0d2a0d,#2a4a2a)"],
+  ["linear-gradient(135deg,#2a1a08,#5a3a1a)", "linear-gradient(135deg,#1a0a00,#3a1a08)", "linear-gradient(135deg,#3a2a18,#6a4a2a)", "linear-gradient(135deg,#0a0a00,#2a1a08)"],
+];
+
+const mockProjects: Project[] = [
+  { id: 1, title: "Sala de Estar Contemporânea", description: "Projeto com iluminação cênica e integração de ambientes", category: "arquitetura", order: 1, featured: true,  mainPhoto: { preview: null, gradient: "linear-gradient(135deg,#1a1a2e,#0f3460)" }, subPhotos: SUB_GRADIENTS[0].map((g, i) => ({ id: 10 + i, preview: null, gradient: g })) },
+  { id: 2, title: "Cozinha Integrada",           description: "Americana com ilha central e acabamento premium",         category: "arquitetura", order: 2, featured: false, mainPhoto: { preview: null, gradient: "linear-gradient(135deg,#0d1b2a,#415a77)" }, subPhotos: SUB_GRADIENTS[1].slice(0,3).map((g, i) => ({ id: 20 + i, preview: null, gradient: g })) },
+  { id: 3, title: "Suíte Master",                description: "Closet integrado com banheira e iluminação indireta",     category: "arquitetura", order: 3, featured: false, mainPhoto: { preview: null, gradient: "linear-gradient(135deg,#1c0a00,#6b3a2a)" }, subPhotos: SUB_GRADIENTS[2].map((g, i) => ({ id: 30 + i, preview: null, gradient: g })) },
+  { id: 4, title: "Estante Planejada",           description: "Marcenaria sob medida em freijó com nichos abertos",      category: "marcenaria",  order: 4, featured: false, mainPhoto: { preview: null, gradient: "linear-gradient(135deg,#0a1628,#2d4a6e)" }, subPhotos: SUB_GRADIENTS[3].slice(0,2).map((g, i) => ({ id: 40 + i, preview: null, gradient: g })) },
+  { id: 5, title: "Closet Autoral",              description: "Closet feminino em laca off-white com espelho bisotê",    category: "marcenaria",  order: 5, featured: true,  mainPhoto: { preview: null, gradient: "linear-gradient(135deg,#0d1a0d,#2d5a2d)" }, subPhotos: SUB_GRADIENTS[4].map((g, i) => ({ id: 50 + i, preview: null, gradient: g })) },
+  { id: 6, title: "Painel TV com Lareira",       description: "Painel em MDF amadeirado com lareira embutida",           category: "marcenaria",  order: 6, featured: false, mainPhoto: { preview: null, gradient: "linear-gradient(135deg,#1a1008,#5a3a1a)" }, subPhotos: SUB_GRADIENTS[5].slice(0,3).map((g, i) => ({ id: 60 + i, preview: null, gradient: g })) },
 ];
 
 /* ─── Helpers ────────────────────────────────────────────── */
@@ -128,51 +143,77 @@ type Tab = "dashboard" | "gallery";
 export function AdminPage() {
   const [activeTab, setActiveTab] = useState<Tab>("dashboard");
   const [sidebarOpen, setSidebarOpen] = useState(false);
-  const [photos, setPhotos] = useState<Photo[]>(mockPhotos);
+  const [projects, setProjects] = useState<Project[]>(mockProjects);
   const [leads, setLeads] = useState<Lead[]>(mockLeads);
-  const [isDragging, setIsDragging] = useState(false);
-  const [uploadPreview, setUploadPreview] = useState<string | null>(null);
-  const [photoForm, setPhotoForm] = useState({ title: "", description: "", category: "arquitetura" as PhotoCategory, order: mockPhotos.length + 1, featured: false });
   const [galleryFilter, setGalleryFilter] = useState<PhotoCategory | "todos">("todos");
-  const fileRef = useRef<HTMLInputElement>(null);
+  const [expandedId, setExpandedId] = useState<number | null>(null);
+  const [isDragging, setIsDragging] = useState(false);
+  const [mainPreview, setMainPreview] = useState<string | null>(null);
+  const [subPreviews, setSubPreviews] = useState<(string | null)[]>([null, null, null, null]);
+  const [activeSubSlot, setActiveSubSlot] = useState<number | null>(null);
+  const [photoForm, setPhotoForm] = useState({ title: "", description: "", category: "arquitetura" as PhotoCategory, order: mockProjects.length + 1, featured: false });
+  const mainFileRef = useRef<HTMLInputElement>(null);
+  const subFileRef = useRef<HTMLInputElement>(null);
 
-  const handleFile = (file: File) => {
+  const readFile = (file: File): Promise<string> =>
+    new Promise((res) => { const r = new FileReader(); r.onload = (e) => res(e.target?.result as string); r.readAsDataURL(file); });
+
+  const handleMainFile = useCallback(async (file: File) => {
     if (!file.type.startsWith("image/")) return;
-    const reader = new FileReader();
-    reader.onload = (e) => setUploadPreview(e.target?.result as string);
-    reader.readAsDataURL(file);
-  };
+    setMainPreview(await readFile(file));
+  }, []);
 
-  const onDrop = useCallback((e: React.DragEvent) => {
+  const onDropMain = useCallback((e: React.DragEvent) => {
     e.preventDefault();
     setIsDragging(false);
     const file = e.dataTransfer.files[0];
-    if (file) handleFile(file);
-  }, []);
+    if (file) handleMainFile(file);
+  }, [handleMainFile]);
 
-  const handlePhotoSubmit = (e: React.FormEvent) => {
+  const openSubSlot = (slot: number) => {
+    setActiveSubSlot(slot);
+    subFileRef.current?.click();
+  };
+
+  const handleSubFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file || activeSubSlot === null) return;
+    const url = await readFile(file);
+    setSubPreviews((prev) => prev.map((p, i) => i === activeSubSlot ? url : p));
+    e.target.value = "";
+  };
+
+  const removeSubPreview = (slot: number) =>
+    setSubPreviews((prev) => prev.map((p, i) => i === slot ? null : p));
+
+  const handleProjectSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    if (!uploadPreview) return;
-    const newPhoto: Photo = {
+    if (!mainPreview) return;
+    const newProject: Project = {
       id: Date.now(),
       title: photoForm.title,
       description: photoForm.description,
       category: photoForm.category,
       order: photoForm.order,
       featured: photoForm.featured,
-      preview: uploadPreview,
-      gradient: "",
+      mainPhoto: { preview: mainPreview, gradient: "" },
+      subPhotos: subPreviews
+        .map((p, i) => ({ id: Date.now() + i + 1, preview: p, gradient: "" }))
+        .filter((s) => s.preview !== null) as SubPhoto[],
     };
-    setPhotos((prev) => [...prev, newPhoto].sort((a, b) => a.order - b.order));
-    setUploadPreview(null);
-    setPhotoForm({ title: "", description: "", category: "arquitetura", order: photos.length + 2, featured: false });
+    setProjects((prev) => [...prev, newProject].sort((a, b) => a.order - b.order));
+    setMainPreview(null);
+    setSubPreviews([null, null, null, null]);
+    setPhotoForm({ title: "", description: "", category: "arquitetura", order: projects.length + 2, featured: false });
   };
 
   const toggleFeatured = (id: number) =>
-    setPhotos((prev) => prev.map((p) => ({ ...p, featured: p.id === id ? !p.featured : p.featured })));
+    setProjects((prev) => prev.map((p) => ({ ...p, featured: p.id === id ? !p.featured : p.featured })));
 
-  const deletePhoto = (id: number) =>
-    setPhotos((prev) => prev.filter((p) => p.id !== id));
+  const deleteProject = (id: number) => {
+    setProjects((prev) => prev.filter((p) => p.id !== id));
+    if (expandedId === id) setExpandedId(null);
+  };
 
   const stats = [
     { icon: Eye, label: "Total de Visitas", value: "12.847", trend: "+12%", up: true, sub: "vs. mês anterior" },
@@ -582,134 +623,150 @@ export function AdminPage() {
                 transition={{ duration: 0.4, ease: [0.22, 1, 0.36, 1] }}
                 className="space-y-6"
               >
+                {/* Hidden sub-photo file input */}
+                <input
+                  ref={subFileRef}
+                  type="file"
+                  accept="image/*"
+                  className="hidden"
+                  onChange={handleSubFileChange}
+                />
+
                 {/* Upload card */}
                 <div
                   className="p-6 lg:p-8 rounded-[20px] border"
                   style={{ background: "#0C1111", borderColor: "rgba(255,255,255,0.05)" }}
                 >
                   <p className="text-[#B59F78] text-[11px] tracking-[0.12em] uppercase mb-1" style={{ fontWeight: 500 }}>
-                    NOVA FOTO
+                    NOVO PROJETO
                   </p>
                   <h2 className="text-[#F2F0EA] text-xl mb-6" style={{ fontWeight: 400 }}>
                     Adicionar ao portfólio
                   </h2>
 
-                  <form onSubmit={handlePhotoSubmit}>
+                  <form onSubmit={handleProjectSubmit}>
                     <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-                      {/* Drop zone */}
-                      <div
-                        className="relative flex flex-col items-center justify-center rounded-[16px] border-2 border-dashed cursor-pointer transition-all duration-300 overflow-hidden"
-                        style={{
-                          minHeight: "240px",
-                          borderColor: isDragging ? "#B59F78" : "rgba(181,159,120,0.2)",
-                          background: isDragging ? "rgba(181,159,120,0.05)" : "rgba(255,255,255,0.02)",
-                        }}
-                        onDragOver={(e) => { e.preventDefault(); setIsDragging(true); }}
-                        onDragLeave={() => setIsDragging(false)}
-                        onDrop={onDrop}
-                        onClick={() => fileRef.current?.click()}
-                      >
-                        {uploadPreview ? (
-                          <>
-                            <img
-                              src={uploadPreview}
-                              alt="Preview"
-                              className="absolute inset-0 w-full h-full object-cover"
-                            />
-                            <div className="absolute inset-0 bg-black/40 flex items-center justify-center opacity-0 hover:opacity-100 transition-opacity duration-300">
-                              <div className="flex flex-col items-center gap-2 text-white">
-                                <Upload size={24} />
-                                <span className="text-sm" style={{ fontWeight: 500 }}>Trocar imagem</span>
+
+                      {/* LEFT: foto principal + subfotos */}
+                      <div className="space-y-3">
+                        {/* Main photo drop zone */}
+                        <p className="text-[#A7A39B] text-xs tracking-wide uppercase" style={{ fontWeight: 500 }}>Foto Principal</p>
+                        <div
+                          className="relative flex flex-col items-center justify-center rounded-[16px] border-2 border-dashed cursor-pointer transition-all duration-300 overflow-hidden"
+                          style={{
+                            minHeight: "200px",
+                            borderColor: isDragging ? "#B59F78" : "rgba(181,159,120,0.25)",
+                            background: isDragging ? "rgba(181,159,120,0.05)" : "rgba(255,255,255,0.02)",
+                          }}
+                          onDragOver={(e) => { e.preventDefault(); setIsDragging(true); }}
+                          onDragLeave={() => setIsDragging(false)}
+                          onDrop={onDropMain}
+                          onClick={() => mainFileRef.current?.click()}
+                        >
+                          {mainPreview ? (
+                            <>
+                              <img src={mainPreview} alt="Foto principal" className="absolute inset-0 w-full h-full object-cover" />
+                              <div className="absolute inset-0 bg-black/40 flex items-center justify-center opacity-0 hover:opacity-100 transition-opacity duration-300">
+                                <div className="flex flex-col items-center gap-2 text-white">
+                                  <Upload size={22} />
+                                  <span className="text-sm" style={{ fontWeight: 500 }}>Trocar</span>
+                                </div>
                               </div>
+                            </>
+                          ) : (
+                            <div className="flex flex-col items-center gap-3 p-6 text-center">
+                              <div className="w-12 h-12 rounded-full flex items-center justify-center" style={{ background: "rgba(181,159,120,0.1)" }}>
+                                <Upload size={20} style={{ color: "#B59F78" }} />
+                              </div>
+                              <p className="text-[#F2F0EA] text-sm" style={{ fontWeight: 500 }}>Arraste ou clique</p>
+                              <p className="text-[#A7A39B] text-xs">PNG, JPG, WEBP — até 10MB</p>
                             </div>
-                          </>
-                        ) : (
-                          <div className="flex flex-col items-center gap-3 p-8 text-center">
-                            <div
-                              className="w-14 h-14 rounded-full flex items-center justify-center mb-2"
-                              style={{ background: "rgba(181,159,120,0.1)" }}
-                            >
-                              <Upload size={22} style={{ color: "#B59F78" }} />
-                            </div>
-                            <p className="text-[#F2F0EA] text-sm" style={{ fontWeight: 500 }}>
-                              Arraste ou clique para enviar
-                            </p>
-                            <p className="text-[#A7A39B] text-xs" style={{ fontWeight: 400 }}>
-                              PNG, JPG, WEBP — até 10MB
-                            </p>
-                          </div>
-                        )}
-                        <input
-                          ref={fileRef}
-                          type="file"
-                          accept="image/*"
-                          className="hidden"
-                          onChange={(e) => { const f = e.target.files?.[0]; if (f) handleFile(f); }}
-                        />
+                          )}
+                          <input ref={mainFileRef} type="file" accept="image/*" className="hidden"
+                            onChange={(e) => { const f = e.target.files?.[0]; if (f) handleMainFile(f); }} />
+                        </div>
+
+                        {/* Sub-photos 2×2 grid */}
+                        <p className="text-[#A7A39B] text-xs tracking-wide uppercase pt-1" style={{ fontWeight: 500 }}>
+                          Subfotos <span style={{ color: "rgba(167,163,155,0.5)", textTransform: "none", letterSpacing: 0 }}>(até 4)</span>
+                        </p>
+                        <div className="grid grid-cols-4 gap-2">
+                          {[0, 1, 2, 3].map((slot) => {
+                            const preview = subPreviews[slot];
+                            return (
+                              <div key={slot} className="relative group">
+                                <div
+                                  className="relative rounded-[10px] overflow-hidden cursor-pointer transition-all duration-200 border"
+                                  style={{
+                                    aspectRatio: "1/1",
+                                    background: preview ? "transparent" : "rgba(255,255,255,0.03)",
+                                    borderColor: preview ? "rgba(181,159,120,0.3)" : "rgba(255,255,255,0.06)",
+                                    borderStyle: preview ? "solid" : "dashed",
+                                  }}
+                                  onClick={() => openSubSlot(slot)}
+                                >
+                                  {preview ? (
+                                    <img src={preview} alt={`Subfoto ${slot + 1}`} className="w-full h-full object-cover" />
+                                  ) : (
+                                    <div className="w-full h-full flex items-center justify-center">
+                                      <span style={{ color: "rgba(181,159,120,0.4)", fontSize: "20px", lineHeight: 1 }}>+</span>
+                                    </div>
+                                  )}
+                                </div>
+                                {preview && (
+                                  <button
+                                    type="button"
+                                    onClick={() => removeSubPreview(slot)}
+                                    className="absolute -top-1.5 -right-1.5 w-5 h-5 rounded-full flex items-center justify-center transition-all duration-200 opacity-0 group-hover:opacity-100"
+                                    style={{ background: "#f87171", zIndex: 10 }}
+                                  >
+                                    <X size={10} style={{ color: "#fff" }} />
+                                  </button>
+                                )}
+                                <span className="absolute bottom-1 left-1 text-[9px] px-1 rounded"
+                                  style={{ background: "rgba(0,0,0,0.55)", color: "#A7A39B", fontWeight: 500 }}>
+                                  {slot + 1}
+                                </span>
+                              </div>
+                            );
+                          })}
+                        </div>
                       </div>
 
-                      {/* Form fields */}
+                      {/* RIGHT: form fields */}
                       <div className="space-y-4">
                         {/* Title */}
                         <div className="relative">
-                          <input
-                            type="text"
-                            id="photo-title"
-                            value={photoForm.title}
+                          <input type="text" id="proj-title" value={photoForm.title}
                             onChange={(e) => setPhotoForm({ ...photoForm, title: e.target.value })}
                             placeholder=" "
-                            className="w-full pl-5 pr-5 pt-6 pb-3 rounded-[14px] text-[#F2F0EA] transition-all duration-300 focus:outline-none peer"
-                            style={{
-                              background: "#0E1414",
-                              border: "1px solid rgba(255,255,255,0.06)",
-                              fontFamily: "Manrope, sans-serif",
-                              fontSize: "15px",
-                            }}
-                            required
-                          />
-                          <label
-                            htmlFor="photo-title"
+                            className="w-full pl-5 pr-5 pt-6 pb-3 rounded-[14px] text-[#F2F0EA] focus:outline-none peer transition-all duration-200"
+                            style={{ background: "#0E1414", border: "1px solid rgba(255,255,255,0.06)", fontFamily: "Manrope, sans-serif", fontSize: "15px" }}
+                            required />
+                          <label htmlFor="proj-title"
                             className="absolute left-5 top-[9px] text-[10px] tracking-[0.08em] text-[#B59F78] pointer-events-none peer-placeholder-shown:top-1/2 peer-placeholder-shown:-translate-y-1/2 peer-placeholder-shown:text-[15px] peer-placeholder-shown:text-[#A7A39B] peer-placeholder-shown:tracking-normal transition-all duration-300"
-                            style={{ fontWeight: 400 }}
-                          >
-                            Título da foto
-                          </label>
+                            style={{ fontWeight: 400 }}>Título do projeto</label>
                         </div>
 
                         {/* Description */}
                         <div className="relative">
-                          <textarea
-                            id="photo-desc"
-                            value={photoForm.description}
+                          <textarea id="proj-desc" value={photoForm.description}
                             onChange={(e) => setPhotoForm({ ...photoForm, description: e.target.value })}
-                            placeholder=" "
-                            rows={3}
-                            className="w-full pl-5 pr-5 pt-6 pb-3 rounded-[14px] text-[#F2F0EA] transition-all duration-300 focus:outline-none resize-none peer"
-                            style={{
-                              background: "#0E1414",
-                              border: "1px solid rgba(255,255,255,0.06)",
-                              fontFamily: "Manrope, sans-serif",
-                              fontSize: "15px",
-                            }}
-                          />
-                          <label
-                            htmlFor="photo-desc"
+                            placeholder=" " rows={3}
+                            className="w-full pl-5 pr-5 pt-6 pb-3 rounded-[14px] text-[#F2F0EA] focus:outline-none resize-none peer transition-all duration-200"
+                            style={{ background: "#0E1414", border: "1px solid rgba(255,255,255,0.06)", fontFamily: "Manrope, sans-serif", fontSize: "15px" }} />
+                          <label htmlFor="proj-desc"
                             className="absolute left-5 top-[9px] text-[10px] tracking-[0.08em] text-[#B59F78] pointer-events-none peer-placeholder-shown:top-5 peer-placeholder-shown:text-[15px] peer-placeholder-shown:text-[#A7A39B] peer-placeholder-shown:tracking-normal transition-all duration-300"
-                            style={{ fontWeight: 400 }}
-                          >
-                            Descrição
-                          </label>
+                            style={{ fontWeight: 400 }}>Descrição</label>
                         </div>
 
-                        {/* Category selector */}
+                        {/* Category */}
                         <div className="flex gap-3">
                           {(["arquitetura", "marcenaria"] as PhotoCategory[]).map((cat) => {
                             const active = photoForm.category === cat;
                             const cfg = categoryConfig[cat];
                             return (
-                              <button
-                                key={cat}
-                                type="button"
+                              <button key={cat} type="button"
                                 onClick={() => setPhotoForm({ ...photoForm, category: cat })}
                                 className="flex-1 py-3 rounded-[14px] text-sm transition-all duration-200"
                                 style={{
@@ -717,87 +774,50 @@ export function AdminPage() {
                                   border: `1px solid ${active ? cfg.color + "55" : "rgba(255,255,255,0.06)"}`,
                                   color: active ? cfg.color : "#A7A39B",
                                   fontWeight: active ? 500 : 400,
-                                }}
-                              >
+                                }}>
                                 {cfg.label}
                               </button>
                             );
                           })}
                         </div>
 
-                        {/* Order + Featured row */}
+                        {/* Order + Featured */}
                         <div className="flex items-center gap-4">
-                          {/* Order */}
                           <div className="relative flex-1">
-                            <input
-                              type="number"
-                              id="photo-order"
-                              value={photoForm.order}
-                              min={1}
+                            <input type="number" id="proj-order" value={photoForm.order} min={1}
                               onChange={(e) => setPhotoForm({ ...photoForm, order: Number(e.target.value) })}
                               placeholder=" "
-                              className="w-full pl-5 pr-5 pt-6 pb-3 rounded-[14px] text-[#F2F0EA] transition-all duration-300 focus:outline-none peer"
-                              style={{
-                                background: "#0E1414",
-                                border: "1px solid rgba(255,255,255,0.06)",
-                                fontFamily: "Manrope, sans-serif",
-                                fontSize: "15px",
-                              }}
-                            />
-                            <label
-                              htmlFor="photo-order"
+                              className="w-full pl-5 pr-5 pt-6 pb-3 rounded-[14px] text-[#F2F0EA] focus:outline-none peer transition-all duration-200"
+                              style={{ background: "#0E1414", border: "1px solid rgba(255,255,255,0.06)", fontFamily: "Manrope, sans-serif", fontSize: "15px" }} />
+                            <label htmlFor="proj-order"
                               className="absolute left-5 top-[9px] text-[10px] tracking-[0.08em] text-[#B59F78] pointer-events-none peer-placeholder-shown:top-1/2 peer-placeholder-shown:-translate-y-1/2 peer-placeholder-shown:text-[15px] peer-placeholder-shown:text-[#A7A39B] peer-placeholder-shown:tracking-normal transition-all duration-300"
-                              style={{ fontWeight: 400 }}
-                            >
-                              Ordem
-                            </label>
+                              style={{ fontWeight: 400 }}>Ordem</label>
                           </div>
-
-                          {/* Featured toggle */}
-                          <button
-                            type="button"
+                          <button type="button"
                             onClick={() => setPhotoForm({ ...photoForm, featured: !photoForm.featured })}
                             className="flex items-center gap-2.5 px-4 py-3 rounded-[14px] transition-all duration-300 flex-shrink-0"
                             style={{
                               background: photoForm.featured ? "rgba(181,159,120,0.12)" : "#0E1414",
                               border: `1px solid ${photoForm.featured ? "rgba(181,159,120,0.3)" : "rgba(255,255,255,0.06)"}`,
-                            }}
-                          >
-                            <Star
-                              size={16}
-                              style={{
-                                color: photoForm.featured ? "#B59F78" : "#A7A39B",
-                                fill: photoForm.featured ? "#B59F78" : "none",
-                              }}
-                            />
-                            <span
-                              className="text-sm whitespace-nowrap"
-                              style={{
-                                color: photoForm.featured ? "#B59F78" : "#A7A39B",
-                                fontWeight: photoForm.featured ? 500 : 400,
-                              }}
-                            >
+                            }}>
+                            <Star size={16} style={{ color: photoForm.featured ? "#B59F78" : "#A7A39B", fill: photoForm.featured ? "#B59F78" : "none" }} />
+                            <span className="text-sm whitespace-nowrap" style={{ color: photoForm.featured ? "#B59F78" : "#A7A39B", fontWeight: photoForm.featured ? 500 : 400 }}>
                               Destaque
                             </span>
                           </button>
                         </div>
 
                         {/* Submit */}
-                        <motion.button
-                          type="submit"
-                          whileHover={{ scale: 1.01, y: -1 }}
-                          whileTap={{ scale: 0.99 }}
+                        <motion.button type="submit"
+                          whileHover={{ scale: 1.01, y: -1 }} whileTap={{ scale: 0.99 }}
                           className="w-full py-[14px] rounded-full flex items-center justify-center gap-2 transition-all duration-300"
                           style={{
-                            background: uploadPreview ? "#B59F78" : "rgba(181,159,120,0.2)",
-                            color: uploadPreview ? "#050808" : "#B59F78",
-                            fontWeight: 500,
-                            fontSize: "15px",
-                            letterSpacing: "0.03em",
-                            boxShadow: uploadPreview ? "0 10px 30px rgba(181,159,120,0.2)" : "none",
-                            cursor: uploadPreview ? "pointer" : "not-allowed",
-                          }}
-                        >
+                            background: mainPreview ? "#B59F78" : "rgba(181,159,120,0.2)",
+                            color: mainPreview ? "#050808" : "#B59F78",
+                            fontWeight: 500, fontSize: "15px", letterSpacing: "0.03em",
+                            boxShadow: mainPreview ? "0 10px 30px rgba(181,159,120,0.2)" : "none",
+                            cursor: mainPreview ? "pointer" : "not-allowed",
+                          }}>
                           <Upload size={16} />
                           Adicionar ao portfólio
                         </motion.button>
@@ -806,37 +826,29 @@ export function AdminPage() {
                   </form>
                 </div>
 
-                {/* Photos grid */}
+                {/* Projects grid */}
                 <div>
+                  {/* Filter + count */}
                   <div className="flex flex-wrap items-center justify-between gap-3 mb-4">
-                    {/* Filter tabs */}
                     <div className="flex items-center gap-2">
                       {([
-                        { id: "todos",        label: "Todos",       count: photos.length },
-                        { id: "arquitetura",  label: "Arquitetura", count: photos.filter((p) => p.category === "arquitetura").length },
-                        { id: "marcenaria",   label: "Marcenaria",  count: photos.filter((p) => p.category === "marcenaria").length },
+                        { id: "todos",       label: "Todos",       count: projects.length },
+                        { id: "arquitetura", label: "Arquitetura", count: projects.filter((p) => p.category === "arquitetura").length },
+                        { id: "marcenaria",  label: "Marcenaria",  count: projects.filter((p) => p.category === "marcenaria").length },
                       ] as { id: PhotoCategory | "todos"; label: string; count: number }[]).map((tab) => {
                         const active = galleryFilter === tab.id;
                         return (
-                          <button
-                            key={tab.id}
-                            onClick={() => setGalleryFilter(tab.id)}
+                          <button key={tab.id} onClick={() => setGalleryFilter(tab.id)}
                             className="flex items-center gap-1.5 px-3.5 py-1.5 rounded-full text-xs transition-all duration-200"
                             style={{
                               background: active ? "rgba(181,159,120,0.12)" : "transparent",
                               border: `1px solid ${active ? "rgba(181,159,120,0.3)" : "rgba(255,255,255,0.07)"}`,
                               color: active ? "#B59F78" : "#A7A39B",
                               fontWeight: active ? 500 : 400,
-                            }}
-                          >
+                            }}>
                             {tab.label}
-                            <span
-                              className="px-1.5 py-0.5 rounded-full text-[10px]"
-                              style={{
-                                background: active ? "rgba(181,159,120,0.2)" : "rgba(255,255,255,0.06)",
-                                color: active ? "#B59F78" : "#A7A39B",
-                              }}
-                            >
+                            <span className="px-1.5 py-0.5 rounded-full text-[10px]"
+                              style={{ background: active ? "rgba(181,159,120,0.2)" : "rgba(255,255,255,0.06)", color: active ? "#B59F78" : "#A7A39B" }}>
                               {tab.count}
                             </span>
                           </button>
@@ -845,106 +857,151 @@ export function AdminPage() {
                     </div>
                     <div className="flex items-center gap-1.5">
                       <GripVertical size={14} style={{ color: "#A7A39B" }} />
-                      <span className="text-[#A7A39B] text-xs hidden sm:block" style={{ fontWeight: 400 }}>
-                        Ordene pelo campo Ordem
-                      </span>
+                      <span className="text-[#A7A39B] text-xs hidden sm:block" style={{ fontWeight: 400 }}>Ordene pelo campo Ordem</span>
                     </div>
                   </div>
 
                   <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-                    {photos.filter((p) => galleryFilter === "todos" || p.category === galleryFilter).map((photo, i) => (
-                      <motion.div
-                        key={photo.id}
-                        initial={{ opacity: 0, scale: 0.97 }}
-                        animate={{ opacity: 1, scale: 1 }}
-                        transition={{ delay: i * 0.06, duration: 0.4, ease: [0.22, 1, 0.36, 1] }}
-                        className="group relative rounded-[16px] overflow-hidden border transition-all duration-300 hover:border-[#B59F78]/20"
-                        style={{
-                          background: "#0C1111",
-                          borderColor: "rgba(255,255,255,0.05)",
-                          boxShadow: "0 4px 20px rgba(0,0,0,0.2)",
-                        }}
-                      >
-                        {/* Image area */}
-                        <div className="relative overflow-hidden" style={{ aspectRatio: "4/3" }}>
-                          {photo.preview ? (
-                            <img src={photo.preview} alt={photo.title} className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-105" />
-                          ) : (
-                            <div
-                              className="w-full h-full transition-transform duration-500 group-hover:scale-105"
-                              style={{ background: photo.gradient }}
-                            />
-                          )}
-                          {/* Hover overlay */}
-                          <div className="absolute inset-0 bg-black/50 opacity-0 group-hover:opacity-100 transition-opacity duration-300 flex items-center justify-center gap-3">
-                            <button
-                              onClick={() => toggleFeatured(photo.id)}
-                              className="w-9 h-9 rounded-full flex items-center justify-center transition-all duration-200 hover:scale-110"
-                              style={{ background: "rgba(181,159,120,0.2)", backdropFilter: "blur(8px)" }}
-                              title="Alternar destaque"
-                            >
-                              <Star
-                                size={16}
-                                style={{
-                                  color: "#B59F78",
-                                  fill: photo.featured ? "#B59F78" : "none",
-                                }}
-                              />
-                            </button>
-                            <button
-                              onClick={() => deletePhoto(photo.id)}
-                              className="w-9 h-9 rounded-full flex items-center justify-center transition-all duration-200 hover:scale-110"
-                              style={{ background: "rgba(248,113,113,0.2)", backdropFilter: "blur(8px)" }}
-                              title="Excluir foto"
-                            >
-                              <Trash2 size={16} style={{ color: "#f87171" }} />
-                            </button>
-                          </div>
+                    {projects
+                      .filter((p) => galleryFilter === "todos" || p.category === galleryFilter)
+                      .map((project, i) => {
+                        const isExpanded = expandedId === project.id;
+                        const catCfg = categoryConfig[project.category];
+                        return (
+                          <motion.div
+                            key={project.id}
+                            initial={{ opacity: 0, scale: 0.97 }}
+                            animate={{ opacity: 1, scale: 1 }}
+                            transition={{ delay: i * 0.06, duration: 0.4, ease: [0.22, 1, 0.36, 1] }}
+                            className="group rounded-[16px] overflow-hidden border transition-all duration-300 hover:border-[#B59F78]/20"
+                            style={{ background: "#0C1111", borderColor: "rgba(255,255,255,0.05)", boxShadow: "0 4px 20px rgba(0,0,0,0.2)" }}
+                          >
+                            {/* Main photo */}
+                            <div className="relative overflow-hidden" style={{ aspectRatio: "4/3" }}>
+                              {project.mainPhoto.preview ? (
+                                <img src={project.mainPhoto.preview} alt={project.title}
+                                  className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-105" />
+                              ) : (
+                                <div className="w-full h-full transition-transform duration-500 group-hover:scale-105"
+                                  style={{ background: project.mainPhoto.gradient }} />
+                              )}
 
-                          {/* Featured badge */}
-                          {photo.featured && (
-                            <div
-                              className="absolute top-3 left-3 flex items-center gap-1.5 px-2.5 py-1 rounded-full"
-                              style={{ background: "rgba(181,159,120,0.85)", backdropFilter: "blur(8px)" }}
-                            >
-                              <Star size={11} style={{ color: "#050808", fill: "#050808" }} />
-                              <span className="text-[10px] text-[#050808]" style={{ fontWeight: 600 }}>Destaque</span>
+                              {/* Hover controls */}
+                              <div className="absolute inset-0 bg-black/50 opacity-0 group-hover:opacity-100 transition-opacity duration-300 flex items-center justify-center gap-3">
+                                <button onClick={() => toggleFeatured(project.id)}
+                                  className="w-9 h-9 rounded-full flex items-center justify-center hover:scale-110 transition-transform"
+                                  style={{ background: "rgba(181,159,120,0.25)", backdropFilter: "blur(8px)" }} title="Alternar destaque">
+                                  <Star size={16} style={{ color: "#B59F78", fill: project.featured ? "#B59F78" : "none" }} />
+                                </button>
+                                <button onClick={() => deleteProject(project.id)}
+                                  className="w-9 h-9 rounded-full flex items-center justify-center hover:scale-110 transition-transform"
+                                  style={{ background: "rgba(248,113,113,0.25)", backdropFilter: "blur(8px)" }} title="Excluir projeto">
+                                  <Trash2 size={16} style={{ color: "#f87171" }} />
+                                </button>
+                              </div>
+
+                              {/* Featured badge */}
+                              {project.featured && (
+                                <div className="absolute top-3 left-3 flex items-center gap-1.5 px-2.5 py-1 rounded-full"
+                                  style={{ background: "rgba(181,159,120,0.9)", backdropFilter: "blur(8px)" }}>
+                                  <Star size={10} style={{ color: "#050808", fill: "#050808" }} />
+                                  <span className="text-[10px] text-[#050808]" style={{ fontWeight: 600 }}>Destaque</span>
+                                </div>
+                              )}
+
+                              {/* Order */}
+                              <div className="absolute top-3 right-3 w-7 h-7 rounded-full flex items-center justify-center"
+                                style={{ background: "rgba(5,8,8,0.7)", backdropFilter: "blur(8px)" }}>
+                                <span className="text-[#A7A39B] text-xs" style={{ fontWeight: 600 }}>{project.order}</span>
+                              </div>
+
+                              {/* Category */}
+                              <div className="absolute bottom-3 left-3 px-2.5 py-1 rounded-full"
+                                style={{ background: catCfg.bg, backdropFilter: "blur(8px)" }}>
+                                <span className="text-[10px]" style={{ color: catCfg.color, fontWeight: 600 }}>{catCfg.label}</span>
+                              </div>
                             </div>
-                          )}
 
-                          {/* Category badge */}
-                          <div
-                            className="absolute bottom-3 left-3 px-2.5 py-1 rounded-full"
-                            style={{
-                              background: categoryConfig[photo.category].bg,
-                              backdropFilter: "blur(8px)",
-                            }}
-                          >
-                            <span className="text-[10px]" style={{ color: categoryConfig[photo.category].color, fontWeight: 600 }}>
-                              {categoryConfig[photo.category].label}
-                            </span>
-                          </div>
+                            {/* Info */}
+                            <div className="p-4 pb-3">
+                              <p className="text-[#F2F0EA] text-sm mb-1 truncate" style={{ fontWeight: 500 }}>{project.title}</p>
+                              <p className="text-[#A7A39B] text-xs leading-relaxed line-clamp-2" style={{ fontWeight: 400 }}>{project.description}</p>
+                            </div>
 
-                          {/* Order badge */}
-                          <div
-                            className="absolute top-3 right-3 w-7 h-7 rounded-full flex items-center justify-center"
-                            style={{ background: "rgba(5,8,8,0.7)", backdropFilter: "blur(8px)" }}
-                          >
-                            <span className="text-[#A7A39B] text-xs" style={{ fontWeight: 600 }}>{photo.order}</span>
-                          </div>
-                        </div>
+                            {/* Sub-photos strip + toggle */}
+                            <div className="px-4 pb-4 space-y-3">
+                              {/* Thumbnails row */}
+                              <div className="flex items-center gap-1.5">
+                                {[0, 1, 2, 3].map((slot) => {
+                                  const sub = project.subPhotos[slot];
+                                  return (
+                                    <div key={slot}
+                                      className="rounded-[6px] overflow-hidden flex-1 border"
+                                      style={{ aspectRatio: "1/1", background: sub ? "transparent" : "rgba(255,255,255,0.03)", borderColor: sub ? "rgba(181,159,120,0.2)" : "rgba(255,255,255,0.05)" }}>
+                                      {sub?.preview ? (
+                                        <img src={sub.preview} alt="" className="w-full h-full object-cover" />
+                                      ) : sub ? (
+                                        <div className="w-full h-full" style={{ background: sub.gradient }} />
+                                      ) : (
+                                        <div className="w-full h-full flex items-center justify-center">
+                                          <span style={{ color: "rgba(255,255,255,0.12)", fontSize: "12px" }}>+</span>
+                                        </div>
+                                      )}
+                                    </div>
+                                  );
+                                })}
+                                <button
+                                  onClick={() => setExpandedId(isExpanded ? null : project.id)}
+                                  className="flex-shrink-0 ml-1 text-xs px-2.5 py-1.5 rounded-[8px] transition-all duration-200 whitespace-nowrap"
+                                  style={{
+                                    background: isExpanded ? "rgba(181,159,120,0.12)" : "rgba(255,255,255,0.04)",
+                                    color: isExpanded ? "#B59F78" : "#A7A39B",
+                                    border: `1px solid ${isExpanded ? "rgba(181,159,120,0.25)" : "rgba(255,255,255,0.06)"}`,
+                                    fontWeight: 500,
+                                  }}>
+                                  {project.subPhotos.length} foto{project.subPhotos.length !== 1 ? "s" : ""}
+                                </button>
+                              </div>
 
-                        {/* Info */}
-                        <div className="p-4">
-                          <p className="text-[#F2F0EA] text-sm mb-1 truncate" style={{ fontWeight: 500 }}>
-                            {photo.title}
-                          </p>
-                          <p className="text-[#A7A39B] text-xs leading-relaxed line-clamp-2" style={{ fontWeight: 400 }}>
-                            {photo.description}
-                          </p>
-                        </div>
-                      </motion.div>
-                    ))}
+                              {/* Expanded sub-photos */}
+                              <AnimatePresence>
+                                {isExpanded && (
+                                  <motion.div
+                                    initial={{ opacity: 0, height: 0 }}
+                                    animate={{ opacity: 1, height: "auto" }}
+                                    exit={{ opacity: 0, height: 0 }}
+                                    transition={{ duration: 0.3, ease: [0.22, 1, 0.36, 1] }}
+                                    className="overflow-hidden"
+                                  >
+                                    <div className="pt-2 border-t" style={{ borderColor: "rgba(255,255,255,0.05)" }}>
+                                      <p className="text-[#A7A39B] text-[10px] tracking-widest uppercase mb-2" style={{ fontWeight: 500 }}>
+                                        Subfotos do projeto
+                                      </p>
+                                      {project.subPhotos.length > 0 ? (
+                                        <div className="grid grid-cols-2 gap-1.5">
+                                          {project.subPhotos.map((sub) => (
+                                            <div key={sub.id} className="rounded-[8px] overflow-hidden" style={{ aspectRatio: "4/3" }}>
+                                              {sub.preview ? (
+                                                <img src={sub.preview} alt="" className="w-full h-full object-cover" />
+                                              ) : (
+                                                <div className="w-full h-full" style={{ background: sub.gradient }} />
+                                              )}
+                                            </div>
+                                          ))}
+                                        </div>
+                                      ) : (
+                                        <p className="text-[#A7A39B]/50 text-xs text-center py-3" style={{ fontWeight: 400 }}>
+                                          Nenhuma subfoto adicionada
+                                        </p>
+                                      )}
+                                    </div>
+                                  </motion.div>
+                                )}
+                              </AnimatePresence>
+                            </div>
+                          </motion.div>
+                        );
+                      })}
                   </div>
                 </div>
               </motion.div>
