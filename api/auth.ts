@@ -2,7 +2,7 @@ import Redis from "ioredis";
 import type { IncomingMessage, ServerResponse } from "http";
 import { computeToken } from "./_adminAuth";
 
-export const config = { runtime: "nodejs" };
+export const config = { runtime: "nodejs", api: { bodyParser: false } };
 
 const MAX_ATTEMPTS = 10;
 const LOCKOUT_SECS = 15 * 60; // 15 minutos
@@ -15,12 +15,13 @@ const getClient = (() => {
     if (!client) {
       client = new Redis(url, {
         tls: url.startsWith("rediss://") ? { rejectUnauthorized: false } : undefined,
-        connectTimeout: 8000,
-        commandTimeout: 6000,
-        maxRetriesPerRequest: 1,
+        connectTimeout: 3000,
+        commandTimeout: 2000,
+        maxRetriesPerRequest: 0,
         enableReadyCheck: false,
         lazyConnect: true,
       });
+      client.on("error", () => {});
     }
     return client;
   };
@@ -69,41 +70,45 @@ async function readJson(req: IncomingMessage): Promise<Record<string, unknown> |
 }
 
 export default async function handler(req: IncomingMessage, res: ServerResponse): Promise<void> {
-  if (req.method !== "POST") {
-    reply(res, 405, { error: "method_not_allowed" });
-    return;
+  try {
+    if (req.method !== "POST") {
+      reply(res, 405, { error: "method_not_allowed" });
+      return;
+    }
+
+    const ip = getClientIp(req);
+
+    if (await isBruteForceBlocked(ip)) {
+      reply(res, 429, { error: "too_many_attempts" });
+      return;
+    }
+
+    const body = await readJson(req);
+    if (!body) {
+      reply(res, 400, { error: "invalid_json" });
+      return;
+    }
+
+    const email = String(body.email ?? "").trim();
+    const password = String(body.password ?? "");
+    const adminEmail = process.env.ADMIN_EMAIL;
+    const adminPassword = process.env.ADMIN_PASSWORD;
+    const adminSecret = process.env.ADMIN_SECRET;
+
+    if (!adminEmail || !adminPassword || !adminSecret) {
+      reply(res, 503, { error: "auth_not_configured" });
+      return;
+    }
+
+    if (email !== adminEmail || password !== adminPassword) {
+      await new Promise((r) => setTimeout(r, 300));
+      reply(res, 401, { error: "invalid_credentials" });
+      return;
+    }
+
+    await clearBruteForce(ip);
+    reply(res, 200, { token: computeToken(adminSecret) });
+  } catch {
+    reply(res, 500, { error: "internal_error" });
   }
-
-  const ip = getClientIp(req);
-
-  if (await isBruteForceBlocked(ip)) {
-    reply(res, 429, { error: "too_many_attempts" });
-    return;
-  }
-
-  const body = await readJson(req);
-  if (!body) {
-    reply(res, 400, { error: "invalid_json" });
-    return;
-  }
-
-  const email = String(body.email ?? "").trim();
-  const password = String(body.password ?? "");
-  const adminEmail = process.env.ADMIN_EMAIL;
-  const adminPassword = process.env.ADMIN_PASSWORD;
-  const adminSecret = process.env.ADMIN_SECRET;
-
-  if (!adminEmail || !adminPassword || !adminSecret) {
-    reply(res, 503, { error: "auth_not_configured" });
-    return;
-  }
-
-  if (email !== adminEmail || password !== adminPassword) {
-    await new Promise((r) => setTimeout(r, 300));
-    reply(res, 401, { error: "invalid_credentials" });
-    return;
-  }
-
-  await clearBruteForce(ip);
-  reply(res, 200, { token: computeToken(adminSecret) });
 }
