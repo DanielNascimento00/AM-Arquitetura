@@ -134,18 +134,36 @@ function safeFileName(name: string): string {
     .slice(0, 80) || "foto";
 }
 
-async function uploadPhoto(projectId: number, file: FormidableFile, slot: string): Promise<ProjectPhoto> {
-  const buffer = await readFile(file.filepath);
-  const pathname = `portfolio/${projectId}/${slot}-${Date.now()}-${safeFileName(file.originalFilename ?? "foto")}`;
-  const blob = await put(pathname, buffer, {
-    access: "public",
+function proxiedPrivateBlobUrl(url: string): string {
+  return `/api/blob?url=${encodeURIComponent(url)}`;
+}
+
+async function putPhoto(pathname: string, buffer: Buffer, file: FormidableFile, access: "public" | "private") {
+  return put(pathname, buffer, {
+    access,
     addRandomSuffix: true,
     contentType: file.mimetype ?? "application/octet-stream",
   });
+}
+
+async function uploadPhoto(projectId: number, file: FormidableFile, slot: string): Promise<ProjectPhoto> {
+  const buffer = await readFile(file.filepath);
+  const pathname = `portfolio/${projectId}/${slot}-${Date.now()}-${safeFileName(file.originalFilename ?? "foto")}`;
+  let blob = null;
+  let access: "public" | "private" = "public";
+
+  try {
+    blob = await putPhoto(pathname, buffer, file, "public");
+  } catch (error) {
+    const message = error instanceof Error ? error.message : "";
+    if (!message.includes("private store")) throw error;
+    access = "private";
+    blob = await putPhoto(pathname, buffer, file, "private");
+  }
 
   return {
     id: Date.now() + Math.floor(Math.random() * 1000),
-    url: blob.url,
+    url: access === "private" ? proxiedPrivateBlobUrl(blob.url) : blob.url,
     pathname: blob.pathname,
   };
 }
