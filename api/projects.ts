@@ -358,7 +358,10 @@ export default async function handler(req: IncomingMessage, res: ServerResponse)
     }
 
     reply(res, 405, { error: "method_not_allowed" });
-  } catch {
-    reply(res, 500, { error: "projects_error" });
+  } catch (error) {
+    reply(res, 500, {
+      error: "projects_error",
+      detail: error instanceof Error ? error.message : "unknown_error",
+    });
   }
 }
