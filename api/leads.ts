@@ -1,4 +1,5 @@
 import Redis from "ioredis";
+import type { IncomingMessage, ServerResponse } from "http";
 
 export const config = { runtime: "nodejs" };
 
@@ -24,10 +25,11 @@ const getClient = (() => {
       const url = process.env.STORAGE_REDIS_URL!;
       client = new Redis(url, {
         tls: url.startsWith("rediss://") ? { rejectUnauthorized: false } : undefined,
-        connectTimeout: 5000,
-        commandTimeout: 4000,
+        connectTimeout: 8000,
+        commandTimeout: 6000,
         maxRetriesPerRequest: 1,
         enableReadyCheck: false,
+        lazyConnect: true,
       });
     }
     return client;
@@ -60,28 +62,51 @@ async function readLeads(r: Redis): Promise<Lead[]> {
     .filter((lead): lead is Lead => lead !== null);
 }
 
-export default async function handler(request: Request): Promise<Response> {
+function reply(res: ServerResponse, status: number, body: unknown) {
+  res.writeHead(status, { "Content-Type": "application/json" });
+  res.end(JSON.stringify(body));
+}
+
+async function readJson(req: IncomingMessage): Promise<Record<string, unknown> | null> {
+  return new Promise((resolve) => {
+    let raw = "";
+    req.on("data", (chunk) => { raw += chunk; });
+    req.on("end", () => {
+      try {
+        resolve(raw ? JSON.parse(raw) as Record<string, unknown> : {});
+      } catch {
+        resolve(null);
+      }
+    });
+    req.on("error", () => resolve(null));
+  });
+}
+
+export default async function handler(req: IncomingMessage, res: ServerResponse): Promise<void> {
   const url = process.env.STORAGE_REDIS_URL;
   if (!url) {
-    return Response.json({ error: "redis_not_configured" }, { status: 503 });
+    reply(res, 503, { error: "redis_not_configured" });
+    return;
   }
 
   try {
     const r = getClient();
 
-    if (request.method === "GET") {
-      return Response.json({ data: await readLeads(r) });
+    if (req.method === "GET") {
+      reply(res, 200, { data: await readLeads(r) });
+      return;
     }
 
-    if (request.method === "POST") {
-      const body = await request.json().catch(() => null) as Partial<Lead> | null;
+    if (req.method === "POST") {
+      const body = await readJson(req) as Partial<Lead> | null;
       const name = sanitize(body?.name);
       const email = sanitize(body?.email);
       const phone = sanitize(body?.phone);
       const message = sanitize(body?.message);
 
       if (!name || !email || !message) {
-        return Response.json({ error: "missing_required_fields" }, { status: 400 });
+        reply(res, 400, { error: "missing_required_fields" });
+        return;
       }
 
       const lead: Lead = {
@@ -96,16 +121,18 @@ export default async function handler(request: Request): Promise<Response> {
 
       await r.lpush(LEADS_KEY, JSON.stringify(lead));
       await r.ltrim(LEADS_KEY, 0, 99);
-      return Response.json({ data: lead }, { status: 201 });
+      reply(res, 201, { data: lead });
+      return;
     }
 
-    if (request.method === "PATCH") {
-      const body = await request.json().catch(() => null) as { id?: number; status?: LeadStatus } | null;
+    if (req.method === "PATCH") {
+      const body = await readJson(req) as { id?: number; status?: LeadStatus } | null;
       const id = Number(body?.id);
       const status = body?.status;
 
       if (!Number.isFinite(id) || !statuses.includes(status as LeadStatus)) {
-        return Response.json({ error: "invalid_payload" }, { status: 400 });
+        reply(res, 400, { error: "invalid_payload" });
+        return;
       }
 
       const leads = await readLeads(r);
@@ -113,7 +140,8 @@ export default async function handler(request: Request): Promise<Response> {
       const updated = nextLeads.find((lead) => lead.id === id);
 
       if (!updated) {
-        return Response.json({ error: "lead_not_found" }, { status: 404 });
+        reply(res, 404, { error: "lead_not_found" });
+        return;
       }
 
       await r.del(LEADS_KEY);
@@ -121,11 +149,12 @@ export default async function handler(request: Request): Promise<Response> {
         await r.rpush(LEADS_KEY, ...nextLeads.map((lead) => JSON.stringify(lead)));
       }
 
-      return Response.json({ data: updated });
+      reply(res, 200, { data: updated });
+      return;
     }
 
-    return Response.json({ error: "method_not_allowed" }, { status: 405 });
+    reply(res, 405, { error: "method_not_allowed" });
   } catch {
-    return Response.json({ error: "redis_error" }, { status: 500 });
+    reply(res, 500, { error: "redis_error" });
   }
 }

@@ -1,5 +1,7 @@
 import { del, put } from "@vercel/blob";
 import Redis from "ioredis";
+import { Readable } from "stream";
+import type { IncomingMessage, ServerResponse } from "http";
 
 export const config = { runtime: "nodejs" };
 
@@ -35,10 +37,11 @@ const getClient = (() => {
       const url = process.env.STORAGE_REDIS_URL!;
       client = new Redis(url, {
         tls: url.startsWith("rediss://") ? { rejectUnauthorized: false } : undefined,
-        connectTimeout: 5000,
-        commandTimeout: 4000,
+        connectTimeout: 8000,
+        commandTimeout: 6000,
         maxRetriesPerRequest: 1,
         enableReadyCheck: false,
+        lazyConnect: true,
       });
     }
     return client;
@@ -77,26 +80,35 @@ async function writeProjects(r: Redis, projects: Project[]): Promise<void> {
   await r.set(PROJECTS_KEY, JSON.stringify(sortProjects(projects)));
 }
 
-function assertRedisConfigured(): Response | null {
+function json(status: number, body: unknown): { status: number; body: unknown } {
+  return { status, body };
+}
+
+function reply(res: ServerResponse, status: number, body: unknown) {
+  res.writeHead(status, { "Content-Type": "application/json" });
+  res.end(JSON.stringify(body));
+}
+
+function assertRedisConfigured(): { status: number; body: unknown } | null {
   if (!process.env.STORAGE_REDIS_URL) {
-    return Response.json({ error: "redis_not_configured" }, { status: 503 });
+    return json(503, { error: "redis_not_configured" });
   }
   return null;
 }
 
-function assertBlobConfigured(): Response | null {
+function assertBlobConfigured(): { status: number; body: unknown } | null {
   if (!process.env.BLOB_READ_WRITE_TOKEN) {
-    return Response.json({ error: "blob_not_configured" }, { status: 503 });
+    return json(503, { error: "blob_not_configured" });
   }
   return null;
 }
 
-function validateImage(file: File): Response | null {
+function validateImage(file: File): { status: number; body: unknown } | null {
   if (!file.type.startsWith("image/")) {
-    return Response.json({ error: "invalid_image_type" }, { status: 400 });
+    return json(400, { error: "invalid_image_type" });
   }
   if (file.size > MAX_IMAGE_SIZE) {
-    return Response.json({ error: "image_too_large" }, { status: 400 });
+    return json(400, { error: "image_too_large" });
   }
   return null;
 }
@@ -136,19 +148,52 @@ function getFile(form: FormData, key: string): File | null {
   return value instanceof File && value.size > 0 ? value : null;
 }
 
-export default async function handler(request: Request): Promise<Response> {
-  const configurationError = assertRedisConfigured() ?? (request.method === "GET" ? null : assertBlobConfigured());
-  if (configurationError) return configurationError;
+async function readJson(req: IncomingMessage): Promise<Record<string, unknown> | null> {
+  return new Promise((resolve) => {
+    let raw = "";
+    req.on("data", (chunk) => { raw += chunk; });
+    req.on("end", () => {
+      try {
+        resolve(raw ? JSON.parse(raw) as Record<string, unknown> : {});
+      } catch {
+        resolve(null);
+      }
+    });
+    req.on("error", () => resolve(null));
+  });
+}
+
+async function readFormData(req: IncomingMessage): Promise<FormData> {
+  const protocol = req.headers["x-forwarded-proto"] ?? "https";
+  const host = req.headers.host ?? "localhost";
+  const url = `${protocol}://${host}${req.url ?? "/api/projects"}`;
+  const request = new Request(url, {
+    method: req.method,
+    headers: req.headers as HeadersInit,
+    body: Readable.toWeb(req) as ReadableStream,
+    duplex: "half",
+  } as RequestInit & { duplex: "half" });
+
+  return request.formData();
+}
+
+export default async function handler(req: IncomingMessage, res: ServerResponse): Promise<void> {
+  const configurationError = assertRedisConfigured() ?? (req.method === "GET" ? null : assertBlobConfigured());
+  if (configurationError) {
+    reply(res, configurationError.status, configurationError.body);
+    return;
+  }
 
   try {
     const r = getClient();
 
-    if (request.method === "GET") {
-      return Response.json({ data: await readProjects(r) });
+    if (req.method === "GET") {
+      reply(res, 200, { data: await readProjects(r) });
+      return;
     }
 
-    if (request.method === "POST") {
-      const form = await request.formData();
+    if (req.method === "POST") {
+      const form = await readFormData(req);
       const title = sanitize(form.get("title"), 180);
       const description = sanitize(form.get("description"), 800);
       const category = sanitize(form.get("category")) as PhotoCategory;
@@ -158,16 +203,23 @@ export default async function handler(request: Request): Promise<Response> {
       const mainFile = getFile(form, "mainPhoto");
 
       if (!title || !categories.includes(category) || !mainFile) {
-        return Response.json({ error: "missing_required_fields" }, { status: 400 });
+        reply(res, 400, { error: "missing_required_fields" });
+        return;
       }
 
       const mainValidation = validateImage(mainFile);
-      if (mainValidation) return mainValidation;
+      if (mainValidation) {
+        reply(res, mainValidation.status, mainValidation.body);
+        return;
+      }
 
       const subFiles = form.getAll("subPhotos").filter((file): file is File => file instanceof File && file.size > 0).slice(0, 4);
       for (const file of subFiles) {
         const validation = validateImage(file);
-        if (validation) return validation;
+        if (validation) {
+          reply(res, validation.status, validation.body);
+          return;
+        }
       }
 
       const id = Date.now();
@@ -189,28 +241,34 @@ export default async function handler(request: Request): Promise<Response> {
       };
 
       await writeProjects(r, [...projects, project]);
-      return Response.json({ data: project }, { status: 201 });
+      reply(res, 201, { data: project });
+      return;
     }
 
-    if (request.method === "PATCH") {
-      const form = await request.formData();
+    if (req.method === "PATCH") {
+      const form = await readFormData(req);
       const id = Number(form.get("id"));
       const projects = await readProjects(r);
       const current = projects.find((project) => project.id === id);
 
       if (!Number.isFinite(id) || !current) {
-        return Response.json({ error: "project_not_found" }, { status: 404 });
+        reply(res, 404, { error: "project_not_found" });
+        return;
       }
 
       const category = sanitize(form.get("category")) as PhotoCategory;
       if (!categories.includes(category)) {
-        return Response.json({ error: "invalid_category" }, { status: 400 });
+        reply(res, 400, { error: "invalid_category" });
+        return;
       }
 
       const mainFile = getFile(form, "mainPhoto");
       if (mainFile) {
         const validation = validateImage(mainFile);
-        if (validation) return validation;
+        if (validation) {
+          reply(res, validation.status, validation.body);
+          return;
+        }
       }
 
       const nextMainPhoto = mainFile ? await uploadPhoto(id, mainFile, "main") : current.mainPhoto;
@@ -221,7 +279,10 @@ export default async function handler(request: Request): Promise<Response> {
         const slotFile = getFile(form, `subPhoto_${slot}`);
         if (slotFile) {
           const validation = validateImage(slotFile);
-          if (validation) return validation;
+          if (validation) {
+            reply(res, validation.status, validation.body);
+            return;
+          }
           nextSubPhotos.push(await uploadPhoto(id, slotFile, `sub-${slot + 1}`));
           continue;
         }
@@ -243,7 +304,8 @@ export default async function handler(request: Request): Promise<Response> {
       };
 
       if (!updated.title) {
-        return Response.json({ error: "missing_required_fields" }, { status: 400 });
+        reply(res, 400, { error: "missing_required_fields" });
+        return;
       }
 
       const oldPhotos = [current.mainPhoto, ...current.subPhotos];
@@ -251,26 +313,29 @@ export default async function handler(request: Request): Promise<Response> {
       await deletePhotos(oldPhotos.filter((photo) => !nextPhotoPaths.has(photo.pathname)));
       await writeProjects(r, projects.map((project) => project.id === id ? updated : project));
 
-      return Response.json({ data: updated });
+      reply(res, 200, { data: updated });
+      return;
     }
 
-    if (request.method === "DELETE") {
-      const body = await request.json().catch(() => null) as { id?: number } | null;
+    if (req.method === "DELETE") {
+      const body = await readJson(req) as { id?: number } | null;
       const id = Number(body?.id);
       const projects = await readProjects(r);
       const project = projects.find((item) => item.id === id);
 
       if (!Number.isFinite(id) || !project) {
-        return Response.json({ error: "project_not_found" }, { status: 404 });
+        reply(res, 404, { error: "project_not_found" });
+        return;
       }
 
       await deletePhotos([project.mainPhoto, ...project.subPhotos]);
       await writeProjects(r, projects.filter((item) => item.id !== id));
-      return Response.json({ data: project });
+      reply(res, 200, { data: project });
+      return;
     }
 
-    return Response.json({ error: "method_not_allowed" }, { status: 405 });
+    reply(res, 405, { error: "method_not_allowed" });
   } catch {
-    return Response.json({ error: "projects_error" }, { status: 500 });
+    reply(res, 500, { error: "projects_error" });
   }
 }
