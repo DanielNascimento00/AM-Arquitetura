@@ -489,8 +489,8 @@ export function PortfolioGrid() {
           ? result.data.map(normalizeProject).filter((project): project is Project => project !== null)
           : [];
 
-        if (active && apiProjects.length > 0) {
-          setProjects(apiProjects);
+        if (active) {
+          setProjects([...defaultProjects, ...apiProjects]);
           setCurrentIndex(0);
           setMobileIndex(0);
         }
