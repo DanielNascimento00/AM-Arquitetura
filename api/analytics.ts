@@ -1,8 +1,22 @@
 import Redis from "ioredis";
+import { createHmac, timingSafeEqual } from "crypto";
 import type { IncomingMessage, ServerResponse } from "http";
-import { validateAdminRequest } from "./_adminAuth";
 
 export const config = { runtime: "nodejs" };
+
+function validateAdminRequest(req: IncomingMessage): boolean {
+  const secret = process.env.ADMIN_SECRET;
+  if (!secret) return false;
+  const day = new Date().toISOString().slice(0, 10);
+  const expected = createHmac("sha256", secret).update(`admin-session:${day}`).digest("hex");
+  const provided = (req.headers["x-admin-token"] as string | undefined) ?? "";
+  if (provided.length !== expected.length) return false;
+  try {
+    return timingSafeEqual(Buffer.from(provided), Buffer.from(expected));
+  } catch {
+    return false;
+  }
+}
 
 const getClient = (() => {
   let client: Redis | null = null;
