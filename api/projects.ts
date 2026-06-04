@@ -3,7 +3,12 @@ import Redis from "ioredis";
 import { Readable } from "stream";
 import type { IncomingMessage, ServerResponse } from "http";
 
-export const config = { runtime: "nodejs" };
+export const config = {
+  runtime: "nodejs",
+  api: {
+    bodyParser: false,
+  },
+};
 
 type PhotoCategory = "arquitetura" | "marcenaria";
 
@@ -174,7 +179,12 @@ async function readFormData(req: IncomingMessage): Promise<FormData> {
     duplex: "half",
   } as RequestInit & { duplex: "half" });
 
-  return request.formData();
+  return Promise.race([
+    request.formData(),
+    new Promise<FormData>((_, reject) => {
+      setTimeout(() => reject(new Error("form_data_timeout")), 15_000);
+    }),
+  ]);
 }
 
 export default async function handler(req: IncomingMessage, res: ServerResponse): Promise<void> {
