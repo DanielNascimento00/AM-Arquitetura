@@ -1,5 +1,4 @@
 import Redis from "ioredis";
-import { createHash, timingSafeEqual } from "crypto";
 import type { IncomingMessage, ServerResponse } from "http";
 
 export const config = { runtime: "nodejs" };
@@ -18,7 +17,6 @@ interface Lead {
 
 const LEADS_KEY = "leads";
 const statuses: LeadStatus[] = ["novo", "contato", "fechado", "perdido"];
-const TEMP_LEADS_CLEANUP_TOKEN_HASH = "1fbebb0a8a21741928eee892d86fce80e5fe8a398deedb2a74da6d9d9b7f689b";
 
 const getClient = (() => {
   let client: Redis | null = null;
@@ -77,15 +75,7 @@ function readHeader(req: IncomingMessage, name: string): string {
 function validateAdminToken(req: IncomingMessage): boolean {
   const configuredToken = process.env.LEADS_ADMIN_TOKEN || process.env.BLOB_READ_WRITE_TOKEN;
   const providedToken = readHeader(req, "x-admin-token");
-  if (!providedToken) return false;
-
-  if (configuredToken && providedToken === configuredToken) return true;
-
-  const providedHash = createHash("sha256").update(providedToken).digest("hex");
-  return timingSafeEqual(
-    Buffer.from(providedHash, "hex"),
-    Buffer.from(TEMP_LEADS_CLEANUP_TOKEN_HASH, "hex"),
-  );
+  return Boolean(configuredToken) && providedToken === configuredToken;
 }
 
 async function readJson(req: IncomingMessage): Promise<Record<string, unknown> | null> {
