@@ -1,22 +1,35 @@
 import { useState } from "react";
 import { motion } from "motion/react";
-import { Eye, EyeOff, ArrowLeft, ArrowRight, Lock, Mail } from "lucide-react";
-import { Link } from "react-router";
+import { Eye, EyeOff, ArrowLeft, ArrowRight, Lock, Mail, AlertCircle } from "lucide-react";
+import { Link, useNavigate, Navigate } from "react-router";
 import { ImageWithFallback } from "@/app/components/figma/ImageWithFallback";
 import logoImg from "@/imports/image-2.png";
 import videoSource from "@/imports/architectural-visualization.mp4";
+import { login, isAuthenticated } from "@/app/auth";
 
 export function LoginPage() {
+  const navigate = useNavigate();
   const [form, setForm] = useState({ email: "", password: "" });
   const [focused, setFocused] = useState({ email: false, password: false });
   const [showPassword, setShowPassword] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
+  const [error, setError] = useState(false);
+
+  if (isAuthenticated()) {
+    return <Navigate to="/admin" replace />;
+  }
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setIsLoading(true);
-    await new Promise((r) => setTimeout(r, 1600));
-    setIsLoading(false);
+    setError(false);
+    const ok = await login(form.email, form.password);
+    if (ok) {
+      navigate("/admin", { replace: true });
+    } else {
+      setError(true);
+      setIsLoading(false);
+    }
   };
 
   return (
@@ -299,16 +312,20 @@ export function LoginPage() {
               </button>
             </div>
 
-            {/* Forgot password */}
-            <div className="flex justify-end pt-1">
-              <a
-                href="#"
-                className="text-sm transition-colors duration-300 hover:text-[#B59F78]"
-                style={{ color: "#A7A39B", fontWeight: 400 }}
+            {/* Error */}
+            {error && (
+              <motion.div
+                initial={{ opacity: 0, y: -6 }}
+                animate={{ opacity: 1, y: 0 }}
+                className="flex items-center gap-2.5 px-4 py-3 rounded-[12px]"
+                style={{ background: "rgba(248,113,113,0.1)", border: "1px solid rgba(248,113,113,0.25)" }}
               >
-                Esqueceu a senha?
-              </a>
-            </div>
+                <AlertCircle size={15} style={{ color: "#f87171", flexShrink: 0 }} />
+                <p className="text-sm" style={{ color: "#f87171", fontWeight: 400 }}>
+                  Email ou senha incorretos.
+                </p>
+              </motion.div>
+            )}
 
             {/* Submit */}
             <motion.button

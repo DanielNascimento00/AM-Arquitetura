@@ -6,11 +6,12 @@ import {
   Mail, Phone, Calendar, MoreHorizontal, GripVertical,
 } from "lucide-react";
 import { useVercelAnalytics } from "@/app/hooks/useVercelAnalytics";
+import { logout, authHeaders } from "@/app/auth";
 import {
   AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip,
   ResponsiveContainer,
 } from "recharts";
-import { Link } from "react-router";
+import { Link, useNavigate } from "react-router";
 import { ImageWithFallback } from "@/app/components/figma/ImageWithFallback";
 import logoImg from "@/imports/image-2.png";
 
@@ -197,6 +198,12 @@ function CustomTooltip({ active, payload, label }: { active?: boolean; payload?:
 type Tab = "dashboard" | "gallery";
 
 export function AdminPage() {
+  const navigate = useNavigate();
+  const handleUnauthorized = useCallback(() => {
+    logout();
+    navigate("/login", { replace: true });
+  }, [navigate]);
+
   const [activeTab, setActiveTab] = useState<Tab>("dashboard");
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [projects, setProjects] = useState<Project[]>([]);
@@ -279,7 +286,8 @@ export function AdminPage() {
 
     setProjectSaving(true);
     try {
-      const response = await fetch("/api/projects", { method: "POST", body: formData });
+      const response = await fetch("/api/projects", { method: "POST", body: formData, headers: authHeaders() });
+      if (response.status === 401) { handleUnauthorized(); return; }
       if (!response.ok) throw new Error("project_create_failed");
       const result = await response.json() as { data: ApiProject };
       const newProject = normalizeProject(result.data);
@@ -302,7 +310,8 @@ export function AdminPage() {
 
     async function loadLeads() {
       try {
-        const response = await fetch("/api/leads");
+        const response = await fetch("/api/leads", { headers: authHeaders() });
+        if (response.status === 401) { handleUnauthorized(); return; }
         if (!response.ok) throw new Error("leads_load_failed");
         const result = await response.json() as { data?: Lead[] };
         if (active) {
@@ -349,10 +358,11 @@ export function AdminPage() {
     try {
       const response = await fetch("/api/leads", {
         method: "PATCH",
-        headers: { "Content-Type": "application/json" },
+        headers: { "Content-Type": "application/json", ...authHeaders() },
         body: JSON.stringify({ id, status }),
       });
 
+      if (response.status === 401) { handleUnauthorized(); return; }
       if (!response.ok) throw new Error("lead_status_update_failed");
       setLeadsError(false);
     } catch {
@@ -371,7 +381,8 @@ export function AdminPage() {
       if (file) formData.set(`subPhoto_${slot}`, file);
     });
 
-    const response = await fetch("/api/projects", { method: "PATCH", body: formData });
+    const response = await fetch("/api/projects", { method: "PATCH", body: formData, headers: authHeaders() });
+    if (response.status === 401) { handleUnauthorized(); return undefined; }
     if (!response.ok) throw new Error("project_update_failed");
     const result = await response.json() as { data: ApiProject };
     const updated = normalizeProject(result.data);
@@ -403,9 +414,10 @@ export function AdminPage() {
     try {
       const response = await fetch("/api/projects", {
         method: "DELETE",
-        headers: { "Content-Type": "application/json" },
+        headers: { "Content-Type": "application/json", ...authHeaders() },
         body: JSON.stringify({ id }),
       });
+      if (response.status === 401) { handleUnauthorized(); return; }
       if (!response.ok) throw new Error("project_delete_failed");
       setProjectsError(false);
     } catch {
@@ -597,6 +609,7 @@ export function AdminPage() {
           </div>
           <Link
             to="/login"
+            onClick={logout}
             className="w-full flex items-center gap-3 px-4 py-2.5 rounded-[12px] transition-all duration-200 hover:bg-white/5 group"
           >
             <LogOut size={16} className="text-[#A7A39B] group-hover:text-[#f87171] transition-colors duration-200" />

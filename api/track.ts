@@ -26,7 +26,15 @@ function reply(res: ServerResponse, status: number, body: unknown) {
   res.end(JSON.stringify(body));
 }
 
-export default async function handler(_req: IncomingMessage, res: ServerResponse): Promise<void> {
+export default async function handler(req: IncomingMessage, res: ServerResponse): Promise<void> {
+  // Rejeita requisições cross-origin (bloqueia bots que enviam Origin de outro domínio)
+  const host = (req.headers["host"] ?? "").split(":")[0];
+  const origin = req.headers["origin"] ?? "";
+  if (origin && !origin.includes(host)) {
+    reply(res, 403, { ok: false, error: "forbidden" });
+    return;
+  }
+
   const url = process.env.STORAGE_REDIS_URL;
   if (!url) {
     reply(res, 503, { ok: false, error: "redis_not_configured" });

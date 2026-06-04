@@ -1,4 +1,5 @@
 import { useState, useEffect } from "react";
+import { authHeaders } from "@/app/auth";
 
 export interface DayData {
   day: string;
@@ -41,7 +42,7 @@ export function useVercelAnalytics(): AnalyticsResult {
   const [error, setError] = useState(false);
 
   useEffect(() => {
-    fetch("/api/analytics")
+    fetch("/api/analytics", { headers: authHeaders() })
       .then((r) => {
         if (!r.ok) throw new Error(`${r.status}`);
         return r.json();

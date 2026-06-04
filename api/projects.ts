@@ -3,6 +3,7 @@ import { readFile } from "fs/promises";
 import formidable, { type Fields, type Files, type File as FormidableFile } from "formidable";
 import Redis from "ioredis";
 import type { IncomingMessage, ServerResponse } from "http";
+import { validateAdminRequest } from "./_adminAuth";
 
 export const config = {
   runtime: "nodejs",
@@ -236,6 +237,10 @@ export default async function handler(req: IncomingMessage, res: ServerResponse)
     }
 
     if (req.method === "POST") {
+      if (!validateAdminRequest(req)) {
+        reply(res, 401, { error: "unauthorized" });
+        return;
+      }
       const { fields, files } = await readMultipart(req);
       const title = sanitize(firstField(fields, "title"), 180);
       const description = sanitize(firstField(fields, "description"), 800);
@@ -289,6 +294,10 @@ export default async function handler(req: IncomingMessage, res: ServerResponse)
     }
 
     if (req.method === "PATCH") {
+      if (!validateAdminRequest(req)) {
+        reply(res, 401, { error: "unauthorized" });
+        return;
+      }
       const { fields, files } = await readMultipart(req);
       const id = Number(firstField(fields, "id"));
       const projects = await readProjects(r);
@@ -361,6 +370,10 @@ export default async function handler(req: IncomingMessage, res: ServerResponse)
     }
 
     if (req.method === "DELETE") {
+      if (!validateAdminRequest(req)) {
+        reply(res, 401, { error: "unauthorized" });
+        return;
+      }
       const body = await readJson(req) as { id?: number } | null;
       const id = Number(body?.id);
       const projects = await readProjects(r);
@@ -379,9 +392,6 @@ export default async function handler(req: IncomingMessage, res: ServerResponse)
 
     reply(res, 405, { error: "method_not_allowed" });
   } catch (error) {
-    reply(res, 500, {
-      error: "projects_error",
-      detail: error instanceof Error ? error.message : "unknown_error",
-    });
+    reply(res, 500, { error: "projects_error" });
   }
 }

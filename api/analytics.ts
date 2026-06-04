@@ -1,5 +1,6 @@
 import Redis from "ioredis";
 import type { IncomingMessage, ServerResponse } from "http";
+import { validateAdminRequest } from "./_adminAuth";
 
 export const config = { runtime: "nodejs" };
 
@@ -31,7 +32,12 @@ function reply(res: ServerResponse, status: number, body: unknown) {
   res.end(JSON.stringify(body));
 }
 
-export default async function handler(_req: IncomingMessage, res: ServerResponse): Promise<void> {
+export default async function handler(req: IncomingMessage, res: ServerResponse): Promise<void> {
+  if (!validateAdminRequest(req)) {
+    reply(res, 401, { error: "unauthorized" });
+    return;
+  }
+
   const url = process.env.STORAGE_REDIS_URL;
   if (!url) {
     reply(res, 503, { error: "redis_not_configured" });

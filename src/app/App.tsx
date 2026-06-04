@@ -13,6 +13,7 @@ import { WhatsAppButton } from "./components/WhatsAppButton";
 import { CustomCursor } from "./components/CustomCursor";
 import { LoginPage } from "./pages/LoginPage";
 import { AdminPage } from "./pages/AdminPage";
+import { ProtectedRoute } from "./components/ProtectedRoute";
 
 function LandingPage() {
   useEffect(() => {
@@ -56,7 +57,7 @@ function App() {
       <Routes>
         <Route path="/" element={<LandingPage />} />
         <Route path="/login" element={<LoginPage />} />
-        <Route path="/admin" element={<AdminPage />} />
+        <Route path="/admin" element={<ProtectedRoute><AdminPage /></ProtectedRoute>} />
       </Routes>
       <Analytics />
     </BrowserRouter>

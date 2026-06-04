@@ -5,6 +5,7 @@ import tailwindcss from '@tailwindcss/vite'
 import react from '@vitejs/plugin-react'
 import Redis from 'ioredis'
 import projectsHandler from './api/projects'
+import { validateAdminRequest, computeToken } from './api/_adminAuth'
 
 type LeadStatus = 'novo' | 'contato' | 'fechado' | 'perdido'
 
@@ -77,6 +78,9 @@ export default defineConfig(({ mode }) => {
   const syncServerEnv = () => {
     if (env.STORAGE_REDIS_URL) process.env.STORAGE_REDIS_URL = env.STORAGE_REDIS_URL;
     if (env.BLOB_READ_WRITE_TOKEN) process.env.BLOB_READ_WRITE_TOKEN = env.BLOB_READ_WRITE_TOKEN;
+    if (env.ADMIN_EMAIL) process.env.ADMIN_EMAIL = env.ADMIN_EMAIL;
+    if (env.ADMIN_PASSWORD) process.env.ADMIN_PASSWORD = env.ADMIN_PASSWORD;
+    if (env.ADMIN_SECRET) process.env.ADMIN_SECRET = env.ADMIN_SECRET;
   };
 
   const handleWebResponse = async (webResponse: Response, res: import('http').ServerResponse) => {
@@ -138,8 +142,42 @@ export default defineConfig(({ mode }) => {
   const analyticsDevPlugin = {
     name: 'analytics-dev-proxy',
     configureServer(server: import('vite').ViteDevServer) {
+      syncServerEnv();
+
+      // POST /api/auth — valida credenciais e retorna token (dev only)
+      server.middlewares.use('/api/auth', async (req: import('http').IncomingMessage, res: import('http').ServerResponse) => {
+        if (req.method !== 'POST') {
+          res.writeHead(405, { 'Content-Type': 'application/json' });
+          res.end(JSON.stringify({ error: 'method_not_allowed' }));
+          return;
+        }
+        const body = await readBody(req);
+        const email = String(body.email ?? '').trim();
+        const password = String(body.password ?? '');
+        const adminEmail = process.env.ADMIN_EMAIL;
+        const adminPassword = process.env.ADMIN_PASSWORD;
+        const adminSecret = process.env.ADMIN_SECRET;
+        if (!adminEmail || !adminPassword || !adminSecret) {
+          res.writeHead(503, { 'Content-Type': 'application/json' });
+          res.end(JSON.stringify({ error: 'auth_not_configured' }));
+          return;
+        }
+        if (email !== adminEmail || password !== adminPassword) {
+          res.writeHead(401, { 'Content-Type': 'application/json' });
+          res.end(JSON.stringify({ error: 'invalid_credentials' }));
+          return;
+        }
+        res.writeHead(200, { 'Content-Type': 'application/json' });
+        res.end(JSON.stringify({ token: computeToken(adminSecret) }));
+      });
+
       // GET /api/analytics — retorna últimos 14 dias
-      server.middlewares.use('/api/analytics', async (_req: import('http').IncomingMessage, res: import('http').ServerResponse) => {
+      server.middlewares.use('/api/analytics', async (req: import('http').IncomingMessage, res: import('http').ServerResponse) => {
+        if (!validateAdminRequest(req)) {
+          res.writeHead(401, { 'Content-Type': 'application/json' });
+          res.end(JSON.stringify({ error: 'unauthorized' }));
+          return;
+        }
         const r = getRedis();
         if (!r) {
           res.writeHead(500, { 'Content-Type': 'application/json' });
@@ -180,6 +218,11 @@ export default defineConfig(({ mode }) => {
         const r = getRedis();
         try {
           if (req.method === 'GET') {
+            if (!validateAdminRequest(req)) {
+              res.writeHead(401, { 'Content-Type': 'application/json' });
+              res.end(JSON.stringify({ error: 'unauthorized' }));
+              return;
+            }
             res.writeHead(200, { 'Content-Type': 'application/json' });
             res.end(JSON.stringify({ data: await readLeads(r) }));
             return;
@@ -221,6 +264,11 @@ export default defineConfig(({ mode }) => {
           }
 
           if (req.method === 'PATCH') {
+            if (!validateAdminRequest(req)) {
+              res.writeHead(401, { 'Content-Type': 'application/json' });
+              res.end(JSON.stringify({ error: 'unauthorized' }));
+              return;
+            }
             const body = await readBody(req);
             const id = Number(body.id);
             const status = body.status as LeadStatus;

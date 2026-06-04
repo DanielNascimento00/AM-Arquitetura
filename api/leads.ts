@@ -1,5 +1,6 @@
 import Redis from "ioredis";
 import type { IncomingMessage, ServerResponse } from "http";
+import { validateAdminRequest } from "./_adminAuth";
 
 export const config = { runtime: "nodejs" };
 
@@ -49,6 +50,25 @@ function sanitize(value: unknown): string {
   return String(value ?? "").trim().slice(0, 1000);
 }
 
+function isValidEmail(email: string): boolean {
+  return /^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/.test(email);
+}
+
+function getClientIp(req: IncomingMessage): string {
+  const forwarded = req.headers["x-forwarded-for"];
+  const raw = Array.isArray(forwarded) ? forwarded[0] : forwarded?.split(",")[0];
+  return (raw ?? "unknown").trim();
+}
+
+async function checkLeadRateLimit(r: Redis, req: IncomingMessage): Promise<boolean> {
+  const ip = getClientIp(req);
+  const bucket = new Date().toISOString().slice(0, 13); // janela por hora
+  const key = `ratelimit:lead:${ip}:${bucket}`;
+  const count = await r.incr(key);
+  if (count === 1) await r.expire(key, 3600);
+  return count <= 5;
+}
+
 async function readLeads(r: Redis): Promise<Lead[]> {
   const items = await r.lrange(LEADS_KEY, 0, 99);
   return items
@@ -65,17 +85,6 @@ async function readLeads(r: Redis): Promise<Lead[]> {
 function reply(res: ServerResponse, status: number, body: unknown) {
   res.writeHead(status, { "Content-Type": "application/json" });
   res.end(JSON.stringify(body));
-}
-
-function readHeader(req: IncomingMessage, name: string): string {
-  const value = req.headers[name.toLowerCase()];
-  return Array.isArray(value) ? value[0] ?? "" : value ?? "";
-}
-
-function validateAdminToken(req: IncomingMessage): boolean {
-  const configuredToken = process.env.LEADS_ADMIN_TOKEN || process.env.BLOB_READ_WRITE_TOKEN;
-  const providedToken = readHeader(req, "x-admin-token");
-  return Boolean(configuredToken) && providedToken === configuredToken;
 }
 
 async function readJson(req: IncomingMessage): Promise<Record<string, unknown> | null> {
@@ -104,11 +113,20 @@ export default async function handler(req: IncomingMessage, res: ServerResponse)
     const r = getClient();
 
     if (req.method === "GET") {
+      if (!validateAdminRequest(req)) {
+        reply(res, 401, { error: "unauthorized" });
+        return;
+      }
       reply(res, 200, { data: await readLeads(r) });
       return;
     }
 
     if (req.method === "POST") {
+      if (!await checkLeadRateLimit(r, req)) {
+        reply(res, 429, { error: "too_many_requests" });
+        return;
+      }
+
       const body = await readJson(req) as Partial<Lead> | null;
       const name = sanitize(body?.name);
       const email = sanitize(body?.email);
@@ -117,6 +135,11 @@ export default async function handler(req: IncomingMessage, res: ServerResponse)
 
       if (!name || !email || !message) {
         reply(res, 400, { error: "missing_required_fields" });
+        return;
+      }
+
+      if (!isValidEmail(email)) {
+        reply(res, 400, { error: "invalid_email" });
         return;
       }
 
@@ -137,6 +160,10 @@ export default async function handler(req: IncomingMessage, res: ServerResponse)
     }
 
     if (req.method === "PATCH") {
+      if (!validateAdminRequest(req)) {
+        reply(res, 401, { error: "unauthorized" });
+        return;
+      }
       const body = await readJson(req) as { id?: number; status?: LeadStatus } | null;
       const id = Number(body?.id);
       const status = body?.status;
@@ -165,7 +192,7 @@ export default async function handler(req: IncomingMessage, res: ServerResponse)
     }
 
     if (req.method === "DELETE") {
-      if (!validateAdminToken(req)) {
+      if (!validateAdminRequest(req)) {
         reply(res, 401, { error: "unauthorized" });
         return;
       }
