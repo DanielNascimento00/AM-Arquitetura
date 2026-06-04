@@ -4,6 +4,48 @@ import React from "react";
 import { ChevronLeft, ChevronRight, X, Maximize2 } from "lucide-react";
 import { ImageWithFallback } from "@/app/components/figma/ImageWithFallback";
 
+import alphaImg1 from "@/imports/WhatsApp_Image_2026-05-25_at_16.31.57.jpeg";
+import alphaImg2 from "@/imports/WhatsApp_Image_2026-05-25_at_16.31.58.jpeg";
+import alphaImg3 from "@/imports/WhatsApp_Image_2026-05-25_at_16.31.58__1_.jpeg";
+import alphaImg4 from "@/imports/WhatsApp_Image_2026-05-25_at_16.31.58__2_.jpeg";
+import alphaImg5 from "@/imports/WhatsApp_Image_2026-05-25_at_16.31.59__1_.jpeg";
+import alphaImg6 from "@/imports/WhatsApp_Image_2026-05-25_at_16.31.59__2_.jpeg";
+import alphaImg7 from "@/imports/WhatsApp_Image_2026-05-25_at_16.31.59__3_.jpeg";
+import alphaImg8 from "@/imports/WhatsApp_Image_2026-05-25_at_16.31.59__4_.jpeg";
+import alphaImg9 from "@/imports/WhatsApp_Image_2026-05-25_at_16.31.59__5_.jpeg";
+
+import spImg1 from "@/imports/WhatsApp_Image_2026-05-25_at_16.31.27.jpeg";
+import spImg2 from "@/imports/WhatsApp_Image_2026-05-25_at_16.31.27__2_.jpeg";
+import spImg3 from "@/imports/WhatsApp_Image_2026-05-25_at_16.31.28.jpeg";
+import spImg4 from "@/imports/WhatsApp_Image_2026-05-25_at_16.31.28__1_.jpeg";
+import spImg5 from "@/imports/WhatsApp_Image_2026-05-25_at_16.31.28__2_.jpeg";
+import spImg6 from "@/imports/WhatsApp_Image_2026-05-25_at_16.31.29.jpeg";
+import spImg7 from "@/imports/WhatsApp_Image_2026-05-25_at_16.31.29__1_.jpeg";
+import spImg8 from "@/imports/WhatsApp_Image_2026-05-25_at_16.31.29__2_.jpeg";
+import spImg9 from "@/imports/WhatsApp_Image_2026-05-25_at_16.31.29__3_.jpeg";
+import spImg10 from "@/imports/WhatsApp_Image_2026-05-25_at_16.31.30__4_.jpeg";
+
+import aaImg1 from "@/imports/WhatsApp_Image_2026-05-25_at_16.30.48.jpeg";
+import aaImg2 from "@/imports/WhatsApp_Image_2026-05-25_at_16.30.48__1_.jpeg";
+import aaImg3 from "@/imports/WhatsApp_Image_2026-05-25_at_16.30.48__2_.jpeg";
+import aaImg4 from "@/imports/WhatsApp_Image_2026-05-25_at_16.30.48__3_.jpeg";
+import aaImg5 from "@/imports/WhatsApp_Image_2026-05-25_at_16.30.49.jpeg";
+import aaImg6 from "@/imports/WhatsApp_Image_2026-05-25_at_16.30.49__1_.jpeg";
+import aaImg7 from "@/imports/WhatsApp_Image_2026-05-25_at_16.30.49__2_.jpeg";
+import aaImg8 from "@/imports/WhatsApp_Image_2026-05-25_at_16.30.49__3_.jpeg";
+import aaImg9 from "@/imports/WhatsApp_Image_2026-05-25_at_16.30.49__4_.jpeg";
+import aaImg10 from "@/imports/WhatsApp_Image_2026-05-25_at_16.30.50__1_.jpeg";
+
+import arbiImg1 from "@/imports/WhatsApp_Image_2026-05-25_at_16.28.45.jpeg";
+import arbiImg2 from "@/imports/WhatsApp_Image_2026-05-25_at_16.28.45__1_.jpeg";
+import arbiImg3 from "@/imports/WhatsApp_Image_2026-05-25_at_16.28.45__2_.jpeg";
+import arbiImg4 from "@/imports/WhatsApp_Image_2026-05-25_at_16.28.46.jpeg";
+import arbiImg5 from "@/imports/WhatsApp_Image_2026-05-25_at_16.28.46__1_.jpeg";
+import arbiImg6 from "@/imports/WhatsApp_Image_2026-05-25_at_16.28.46__2_.jpeg";
+import arbiImg7 from "@/imports/WhatsApp_Image_2026-05-25_at_16.28.46__3_.jpeg";
+import arbiImg8 from "@/imports/WhatsApp_Image_2026-05-25_at_16.28.46__4_.jpeg";
+import arbiImg9 from "@/imports/WhatsApp_Image_2026-05-25_at_16.28.47__1_.jpeg";
+import arbiImg10 from "@/imports/WhatsApp_Image_2026-05-25_at_16.28.47__2_.jpeg";
 
 type ProjectCategory = "arquitetura" | "marcenaria";
 
@@ -12,7 +54,7 @@ interface Project {
   name: string;
   category: ProjectCategory;
   description: string;
-  images: string[];
+  images: (string | typeof alphaImg1)[];
 }
 
 interface ApiProject {
@@ -24,6 +66,90 @@ interface ApiProject {
   mainPhoto: { url?: string; preview?: string | null };
   subPhotos: { url?: string; preview?: string | null }[];
 }
+
+const defaultProjects: Project[] = [
+  {
+    id: 1,
+    name: "Residencial Alphaville",
+    category: "arquitetura",
+    description: "Residência de alto padrão com cozinha integrada, jardim vertical e marcenaria autoral em madeira natural.",
+    images: [alphaImg1, alphaImg2, alphaImg3, alphaImg4, alphaImg5, alphaImg6, alphaImg7, alphaImg8, alphaImg9],
+  },
+  {
+    id: 2,
+    name: "Residencial São Paulo",
+    category: "arquitetura",
+    description: "Apartamento sofisticado com marcenaria autoral, adega integrada e ambientes de alto padrão em São Paulo.",
+    images: [spImg1, spImg2, spImg3, spImg4, spImg5, spImg6, spImg7, spImg8, spImg9, spImg10],
+  },
+  {
+    id: 3,
+    name: "Decorado Arthur Alvim",
+    category: "arquitetura",
+    description: "Apartamento decorado com design contemporâneo, marcenaria planejada e ambientes integrados de alto padrão.",
+    images: [aaImg1, aaImg2, aaImg3, aaImg4, aaImg5, aaImg6, aaImg7, aaImg8, aaImg9, aaImg10],
+  },
+  {
+    id: 9,
+    name: "Studio ARBI - São Paulo",
+    category: "arquitetura",
+    description: "Studio compacto e sofisticado com soluções inteligentes de marcenaria e design contemporâneo em São Paulo.",
+    images: [arbiImg1, arbiImg2, arbiImg3, arbiImg4, arbiImg5, arbiImg6, arbiImg7, arbiImg8, arbiImg9, arbiImg10],
+  },
+  {
+    id: 4,
+    name: "Living Premium",
+    category: "arquitetura",
+    description: "Espaço amplo com integração entre ambientes e materiais premium.",
+    images: [
+      "https://images.unsplash.com/photo-1628745277866-ff9305ac52cc?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3Nzg4Nzd8MHwxfHNlYXJjaHw1fHxsdXh1cnklMjBtb2Rlcm4lMjBsaXZpbmclMjByb29tJTIwaW50ZXJpb3IlMjBkZXNpZ258ZW58MXx8fHwxNzc2ODc3MTQ3fDA&ixlib=rb-4.1.0&q=80&w=1080",
+      "https://images.unsplash.com/photo-1760072513442-9872656c1b07?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3Nzg4Nzd8MHwxfHNlYXJjaHw5fHxsdXh1cnklMjBtb2Rlcm4lMjBsaXZpbmclMjByb29tJTIwaW50ZXJpb3IlMjBkZXNpZ258ZW58MXx8fHwxNzc2ODc3MTQ3fDA&ixlib=rb-4.1.0&q=80&w=1080",
+      "https://images.unsplash.com/photo-1776482128172-dd265ad0cb49?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3Nzg4Nzd8MHwxfHNlYXJjaHwxNHx8bHV4dXJ5JTIwbW9kZXJuJTIwbGl2aW5nJTIwcm9vbSUyMGludGVyaW9yJTIwZGVzaWdufGVufDF8fHx8MTc3Njg3NzE0N3ww&ixlib=rb-4.1.0&q=80&w=1080",
+    ],
+  },
+  {
+    id: 5,
+    name: "Closet Atelier",
+    category: "marcenaria",
+    description: "Marcenaria sob medida com organização inteligente e acabamento premium.",
+    images: [
+      "https://images.unsplash.com/photo-1770573322210-204dea84450f?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3Nzg4Nzd8MHwxfHNlYXJjaHw3fHxjdXN0b20lMjB3b29kd29yayUyMGNhcnBlbnRyeSUyMGludGVyaW9yfGVufDF8fHx8MTc3Njg3NjIxMXww&ixlib=rb-4.1.0&q=80&w=1080",
+      "https://images.unsplash.com/photo-1770573318949-bd4f75d1f9bc?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3Nzg4Nzd8MHwxfHNlYXJjaHw2fHxjdXN0b20lMjB3b29kd29yayUyMGNhcnBlbnRyeSUyMGludGVyaW9yfGVufDF8fHx8MTc3Njg3NjIxMXww&ixlib=rb-4.1.0&q=80&w=1080",
+      "https://images.unsplash.com/photo-1682450195449-32ab08ddf7e7?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3Nzg4Nzd8MHwxfHNlYXJjaHw4fHxjdXN0b20lMjB3b29kd29yayUyMGNhcnBlbnRyeSUyMGludGVyaW9yfGVufDF8fHx8MTc3Njg3NjIxMXww&ixlib=rb-4.1.0&q=80&w=1080",
+    ],
+  },
+  {
+    id: 6,
+    name: "Painel Vértice",
+    category: "marcenaria",
+    description: "Composição autoral com painel ripado e nichos integrados.",
+    images: [
+      "https://images.unsplash.com/photo-1757344454271-bad02eff9fda?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3Nzg4Nzd8MHwxfHNlYXJjaHw4fHxtb2Rlcm4lMjBiZWRyb29tJTIwaW50ZXJpb3IlMjBsdXh1cnklMjBtaW5pbWFsaXN0fGVufDF8fHx8MTc3Njg3NzE0OHww&ixlib=rb-4.1.0&q=80&w=1080",
+      "https://images.unsplash.com/photo-1757344454333-cc666252e596?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3Nzg4Nzd8MHwxfHNlYXJjaHw3fHxtb2Rlcm4lMjBiZWRyb29tJTIwaW50ZXJpb3IlMjBsdXh1cnklMjBtaW5pbWFsaXN0fGVufDF8fHx8MTc3Njg3NzE0OHww&ixlib=rb-4.1.0&q=80&w=1080",
+    ],
+  },
+  {
+    id: 7,
+    name: "Gourmet Linea",
+    category: "marcenaria",
+    description: "Marcenaria para cozinha com ilha central e design limpo.",
+    images: [
+      "https://images.unsplash.com/photo-1638541363822-6f4c189b5cf7?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3Nzg4Nzd8MHwxfHNlYXJjaHw0fHxtb2Rlcm4lMjBraXRjaGVuJTIwaW50ZXJpb3IlMjBsdXh1cnl8ZW58MXx8fHwxNzc2ODc2MjEwfDA&ixlib=rb-4.1.0&q=80&w=1080",
+      "https://images.unsplash.com/photo-1639173925921-5d5fd027713c?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3Nzg4Nzd8MHwxfHNlYXJjaHw2fHxtb2Rlcm4lMjBraXRjaGVuJTIwaW50ZXJpb3IlMjBsdXh1cnl8ZW58MXx8fHwxNzc2ODc2MjEwfDA&ixlib=rb-4.1.0&q=80&w=1080",
+      "https://images.unsplash.com/photo-1639405069836-f82aa6dcb900?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3Nzg4Nzd8MHwxfHNlYXJjaHw3fHxtb2Rlcm4lMjBraXRjaGVuJTIwaW50ZXJpb3IlMjBsdXh1cnl8ZW58MXx8fHwxNzc2ODc2MjEwfDA&ixlib=rb-4.1.0&q=80&w=1080",
+    ],
+  },
+  {
+    id: 8,
+    name: "Home Office Premium",
+    category: "marcenaria",
+    description: "Marcenaria funcional com estantes integradas e painel de madeira natural.",
+    images: [
+      "https://images.unsplash.com/photo-1634253539560-692feb6aeebb?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3Nzg4Nzd8MHwxfHNlYXJjaHwxMHx8Y3VzdG9tJTIwd29vZHdvcmslMjBjYXJwZW50cnklMjBpbnRlcmlvcnxlbnwxfHx8fDE3NzY4NzYyMTF8MA&ixlib=rb-4.1.0&q=80&w=1080",
+      "https://images.unsplash.com/photo-1765862835282-cd3d9190d246?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3Nzg4Nzd8MHwxfHNlYXJjaHwxMnx8bW9kZXJuJTIwYmVkcm9vbSUyMGludGVyaW9yJTIwbHV4dXJ5JTIwbWluaW1hbGlzdHxlbnwxfHx8fDE3NzY4NzcxNDh8MA&ixlib=rb-4.1.0&q=80&w=1080",
+    ],
+  },
+];
 
 function FullscreenModal({ src, alt, onClose }: { src: string; alt: string; onClose: () => void }) {
   const isImported = !src.startsWith("http");
@@ -345,7 +471,7 @@ function normalizeProject(project: ApiProject): Project | null {
 
 export function PortfolioGrid() {
   const [activeCategory, setActiveCategory] = useState<ProjectCategory>("arquitetura");
-  const [projects, setProjects] = useState<Project[]>([]);
+  const [projects, setProjects] = useState<Project[]>(defaultProjects);
   const [currentIndex, setCurrentIndex] = useState(0);
   const [mobileIndex, setMobileIndex] = useState(0);
   const [selectedProject, setSelectedProject] = useState<Project | null>(null);
@@ -363,13 +489,13 @@ export function PortfolioGrid() {
           ? result.data.map(normalizeProject).filter((project): project is Project => project !== null)
           : [];
 
-        if (active) {
+        if (active && apiProjects.length > 0) {
           setProjects(apiProjects);
           setCurrentIndex(0);
           setMobileIndex(0);
         }
       } catch {
-        if (active) setProjects([]);
+        if (active) setProjects(defaultProjects);
       }
     }
 
@@ -438,19 +564,6 @@ export function PortfolioGrid() {
           </motion.div>
 
           {/* Mobile: carrossel com botões e indicadores */}
-          {filteredProjects.length === 0 && (
-            <div
-              className="py-16 text-center rounded-[16px] border"
-              style={{ background: "#0C1111", borderColor: "rgba(255,255,255,0.05)" }}
-            >
-              <p className="text-[#A7A39B] text-sm" style={{ fontWeight: 400 }}>
-                Nenhum projeto cadastrado nesta categoria.
-              </p>
-            </div>
-          )}
-
-          {filteredProjects.length > 0 && (
-            <>
           <div className="md:hidden">
             <div className="relative">
               <div className="overflow-hidden rounded-[16px]" style={{ height: "420px" }}>
@@ -556,8 +669,6 @@ export function PortfolioGrid() {
               ))}
             </div>
           </div>
-            </>
-          )}
         </div>
       </section>
 
