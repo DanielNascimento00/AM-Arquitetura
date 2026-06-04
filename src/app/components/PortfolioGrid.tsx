@@ -1,5 +1,5 @@
 import { motion, AnimatePresence } from "motion/react";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import React from "react";
 import { ChevronLeft, ChevronRight, X, Maximize2 } from "lucide-react";
 import { ImageWithFallback } from "@/app/components/figma/ImageWithFallback";
@@ -57,7 +57,17 @@ interface Project {
   images: (string | typeof alphaImg1)[];
 }
 
-const projects: Project[] = [
+interface ApiProject {
+  id: number;
+  title: string;
+  category: ProjectCategory;
+  description: string;
+  order: number;
+  mainPhoto: { url?: string; preview?: string | null };
+  subPhotos: { url?: string; preview?: string | null }[];
+}
+
+const defaultProjects: Project[] = [
   {
     id: 1,
     name: "Residencial Alphaville",
@@ -442,12 +452,56 @@ function MobileProjectCard({ project, onClick }: { project: Project; onClick: ()
   );
 }
 
+function normalizeProject(project: ApiProject): Project | null {
+  const images = [
+    project.mainPhoto.url ?? project.mainPhoto.preview,
+    ...project.subPhotos.map((photo) => photo.url ?? photo.preview),
+  ].filter((image): image is string => Boolean(image));
+
+  if (images.length === 0) return null;
+
+  return {
+    id: project.id,
+    name: project.title,
+    category: project.category,
+    description: project.description,
+    images,
+  };
+}
+
 export function PortfolioGrid() {
   const [activeCategory, setActiveCategory] = useState<ProjectCategory>("arquitetura");
+  const [projects, setProjects] = useState<Project[]>(defaultProjects);
   const [currentIndex, setCurrentIndex] = useState(0);
   const [mobileIndex, setMobileIndex] = useState(0);
   const [selectedProject, setSelectedProject] = useState<Project | null>(null);
   const [fullscreenSrc, setFullscreenSrc] = useState<string | null>(null);
+
+  useEffect(() => {
+    let active = true;
+
+    async function loadProjects() {
+      try {
+        const response = await fetch("/api/projects");
+        if (!response.ok) throw new Error("projects_load_failed");
+        const result = await response.json() as { data?: ApiProject[] };
+        const apiProjects = Array.isArray(result.data)
+          ? result.data.map(normalizeProject).filter((project): project is Project => project !== null)
+          : [];
+
+        if (active && apiProjects.length > 0) {
+          setProjects(apiProjects);
+          setCurrentIndex(0);
+          setMobileIndex(0);
+        }
+      } catch {
+        if (active) setProjects(defaultProjects);
+      }
+    }
+
+    loadProjects();
+    return () => { active = false; };
+  }, []);
 
   const filteredProjects = projects.filter((p) => p.category === activeCategory);
   const visibleCards = 3;

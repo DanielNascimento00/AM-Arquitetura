@@ -1,4 +1,4 @@
-import { useState, useRef, useCallback } from "react";
+import { useState, useRef, useCallback, useEffect } from "react";
 import { motion, AnimatePresence } from "motion/react";
 import {
   LayoutDashboard, Images, LogOut, Eye, Users, TrendingUp,
@@ -59,6 +59,7 @@ interface SubPhoto {
   id: number;
   preview: string | null;
   gradient: string;
+  pathname?: string;
 }
 
 interface Project {
@@ -68,8 +69,19 @@ interface Project {
   category: PhotoCategory;
   order: number;
   featured: boolean;
-  mainPhoto: { preview: string | null; gradient: string };
+  mainPhoto: { preview: string | null; gradient: string; pathname?: string };
   subPhotos: SubPhoto[];
+}
+
+interface ApiProject {
+  id: number;
+  title: string;
+  description: string;
+  category: PhotoCategory;
+  order: number;
+  featured: boolean;
+  mainPhoto: { id: number; url?: string; preview?: string | null; pathname?: string; gradient?: string };
+  subPhotos: { id: number; url?: string; preview?: string | null; pathname?: string; gradient?: string }[];
 }
 
 const categoryConfig: Record<PhotoCategory, { label: string; color: string; bg: string }> = {
@@ -103,6 +115,39 @@ const statusConfig: Record<LeadStatus, { label: string; color: string; bg: strin
   fechado:  { label: "Fechado",   color: "#4ade80", bg: "rgba(74,222,128,0.12)" },
   perdido:  { label: "Perdido",   color: "#f87171", bg: "rgba(248,113,113,0.12)" },
 };
+
+function normalizeProject(project: ApiProject): Project {
+  return {
+    id: project.id,
+    title: project.title,
+    description: project.description,
+    category: project.category,
+    order: project.order,
+    featured: project.featured,
+    mainPhoto: {
+      preview: project.mainPhoto.url ?? project.mainPhoto.preview ?? null,
+      gradient: project.mainPhoto.gradient ?? "",
+      pathname: project.mainPhoto.pathname,
+    },
+    subPhotos: project.subPhotos.map((photo) => ({
+      id: photo.id,
+      preview: photo.url ?? photo.preview ?? null,
+      gradient: photo.gradient ?? "",
+      pathname: photo.pathname,
+    })),
+  };
+}
+
+function appendProjectFormData(
+  formData: FormData,
+  form: { title: string; description: string; category: PhotoCategory; order: number; featured: boolean },
+) {
+  formData.set("title", form.title);
+  formData.set("description", form.description);
+  formData.set("category", form.category);
+  formData.set("order", String(form.order));
+  formData.set("featured", String(form.featured));
+}
 
 function StatusBadge({ status }: { status: LeadStatus }) {
   const cfg = statusConfig[status];
@@ -145,11 +190,18 @@ export function AdminPage() {
   const [activeTab, setActiveTab] = useState<Tab>("dashboard");
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [projects, setProjects] = useState<Project[]>(mockProjects);
-  const [leads, setLeads] = useState<Lead[]>(mockLeads);
+  const [leads, setLeads] = useState<Lead[]>([]);
+  const [leadsLoading, setLeadsLoading] = useState(true);
+  const [leadsError, setLeadsError] = useState(false);
+  const [projectsLoading, setProjectsLoading] = useState(true);
+  const [projectsError, setProjectsError] = useState(false);
+  const [projectSaving, setProjectSaving] = useState(false);
   const [galleryFilter, setGalleryFilter] = useState<PhotoCategory | "todos">("todos");
   const [expandedId, setExpandedId] = useState<number | null>(null);
   const [isDragging, setIsDragging] = useState(false);
+  const [mainFile, setMainFile] = useState<File | null>(null);
   const [mainPreview, setMainPreview] = useState<string | null>(null);
+  const [subFiles, setSubFiles] = useState<(File | null)[]>([null, null, null, null]);
   const [subPreviews, setSubPreviews] = useState<(string | null)[]>([null, null, null, null]);
   const [activeSubSlot, setActiveSubSlot] = useState<number | null>(null);
   const [photoForm, setPhotoForm] = useState({ title: "", description: "", category: "arquitetura" as PhotoCategory, order: mockProjects.length + 1, featured: false });
@@ -158,9 +210,11 @@ export function AdminPage() {
 
   // Edit modal state
   const [editingProject, setEditingProject] = useState<Project | null>(null);
+  const [editMainFile, setEditMainFile] = useState<File | null>(null);
   const [editMainPreview, setEditMainPreview] = useState<string | null>(null);
   const [editMainGradient, setEditMainGradient] = useState<string>("");
   const [editSubSlots, setEditSubSlots] = useState<(SubPhoto | null)[]>([null, null, null, null]);
+  const [editSubFiles, setEditSubFiles] = useState<(File | null)[]>([null, null, null, null]);
   const [editActiveSubSlot, setEditActiveSubSlot] = useState<number | null>(null);
   const [editIsDragging, setEditIsDragging] = useState(false);
   const [editForm, setEditForm] = useState({ title: "", description: "", category: "arquitetura" as PhotoCategory, order: 1, featured: false });
@@ -172,6 +226,7 @@ export function AdminPage() {
 
   const handleMainFile = useCallback(async (file: File) => {
     if (!file.type.startsWith("image/")) return;
+    setMainFile(file);
     setMainPreview(await readFile(file));
   }, []);
 
@@ -191,57 +246,179 @@ export function AdminPage() {
     const file = e.target.files?.[0];
     if (!file || activeSubSlot === null) return;
     const url = await readFile(file);
+    setSubFiles((prev) => prev.map((p, i) => i === activeSubSlot ? file : p));
     setSubPreviews((prev) => prev.map((p, i) => i === activeSubSlot ? url : p));
     e.target.value = "";
   };
 
-  const removeSubPreview = (slot: number) =>
+  const removeSubPreview = (slot: number) => {
+    setSubFiles((prev) => prev.map((p, i) => i === slot ? null : p));
     setSubPreviews((prev) => prev.map((p, i) => i === slot ? null : p));
-
-  const handleProjectSubmit = (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!mainPreview) return;
-    const newProject: Project = {
-      id: Date.now(),
-      title: photoForm.title,
-      description: photoForm.description,
-      category: photoForm.category,
-      order: photoForm.order,
-      featured: photoForm.featured,
-      mainPhoto: { preview: mainPreview, gradient: "" },
-      subPhotos: subPreviews
-        .map((p, i) => ({ id: Date.now() + i + 1, preview: p, gradient: "" }))
-        .filter((s) => s.preview !== null) as SubPhoto[],
-    };
-    setProjects((prev) => [...prev, newProject].sort((a, b) => a.order - b.order));
-    setMainPreview(null);
-    setSubPreviews([null, null, null, null]);
-    setPhotoForm({ title: "", description: "", category: "arquitetura", order: projects.length + 2, featured: false });
   };
 
-  const updateLeadStatus = (id: number, status: LeadStatus) =>
+  const handleProjectSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!mainFile || projectSaving) return;
+
+    const formData = new FormData();
+    appendProjectFormData(formData, photoForm);
+    formData.set("mainPhoto", mainFile);
+    subFiles.forEach((file) => {
+      if (file) formData.append("subPhotos", file);
+    });
+
+    setProjectSaving(true);
+    try {
+      const response = await fetch("/api/projects", { method: "POST", body: formData });
+      if (!response.ok) throw new Error("project_create_failed");
+      const result = await response.json() as { data: ApiProject };
+      const newProject = normalizeProject(result.data);
+      setProjects((prev) => [...prev.filter((p) => p.id !== newProject.id), newProject].sort((a, b) => a.order - b.order));
+      setProjectsError(false);
+      setMainFile(null);
+      setMainPreview(null);
+      setSubFiles([null, null, null, null]);
+      setSubPreviews([null, null, null, null]);
+      setPhotoForm({ title: "", description: "", category: "arquitetura", order: projects.length + 2, featured: false });
+    } catch {
+      setProjectsError(true);
+    } finally {
+      setProjectSaving(false);
+    }
+  };
+
+  useEffect(() => {
+    let active = true;
+
+    async function loadLeads() {
+      try {
+        const response = await fetch("/api/leads");
+        if (!response.ok) throw new Error("leads_load_failed");
+        const result = await response.json() as { data?: Lead[] };
+        if (active) {
+          setLeads(Array.isArray(result.data) ? result.data : []);
+          setLeadsError(false);
+        }
+      } catch {
+        if (active) {
+          setLeads([]);
+          setLeadsError(true);
+        }
+      } finally {
+        if (active) setLeadsLoading(false);
+      }
+    }
+
+    async function loadProjects() {
+      try {
+        const response = await fetch("/api/projects");
+        if (!response.ok) throw new Error("projects_load_failed");
+        const result = await response.json() as { data?: ApiProject[] };
+        if (active) {
+          const nextProjects = Array.isArray(result.data) ? result.data.map(normalizeProject) : [];
+          setProjects(nextProjects.length > 0 ? nextProjects : mockProjects);
+          setPhotoForm((prev) => ({ ...prev, order: nextProjects.length + 1 }));
+          setProjectsError(false);
+        }
+      } catch {
+        if (active) setProjectsError(true);
+      } finally {
+        if (active) setProjectsLoading(false);
+      }
+    }
+
+    loadLeads();
+    loadProjects();
+    return () => { active = false; };
+  }, []);
+
+  const updateLeadStatus = async (id: number, status: LeadStatus) => {
+    const previousLeads = leads;
     setLeads((prev) => prev.map((l) => (l.id === id ? { ...l, status } : l)));
 
-  const toggleFeatured = (id: number) =>
+    try {
+      const response = await fetch("/api/leads", {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ id, status }),
+      });
+
+      if (!response.ok) throw new Error("lead_status_update_failed");
+      setLeadsError(false);
+    } catch {
+      setLeads(previousLeads);
+      setLeadsError(true);
+    }
+  };
+
+  const saveProject = async (project: Project, form: typeof editForm, main: File | null, subSlots: (SubPhoto | null)[], slotFiles: (File | null)[]) => {
+    const formData = new FormData();
+    formData.set("id", String(project.id));
+    appendProjectFormData(formData, form);
+    if (main) formData.set("mainPhoto", main);
+    formData.set("keptSubPhotoIds", JSON.stringify(subSlots.map((sub) => sub?.id ?? null)));
+    slotFiles.forEach((file, slot) => {
+      if (file) formData.set(`subPhoto_${slot}`, file);
+    });
+
+    const response = await fetch("/api/projects", { method: "PATCH", body: formData });
+    if (!response.ok) throw new Error("project_update_failed");
+    const result = await response.json() as { data: ApiProject };
+    const updated = normalizeProject(result.data);
+    setProjects((prev) => prev.map((p) => p.id === updated.id ? updated : p).sort((a, b) => a.order - b.order));
+    setProjectsError(false);
+    return updated;
+  };
+
+  const toggleFeatured = async (id: number) => {
+    const project = projects.find((p) => p.id === id);
+    if (!project) return;
+
+    const previousProjects = projects;
     setProjects((prev) => prev.map((p) => ({ ...p, featured: p.id === id ? !p.featured : p.featured })));
 
-  const deleteProject = (id: number) => {
+    try {
+      await saveProject(project, { title: project.title, description: project.description, category: project.category, order: project.order, featured: !project.featured }, null, project.subPhotos, [null, null, null, null]);
+    } catch {
+      setProjects(previousProjects);
+      setProjectsError(true);
+    }
+  };
+
+  const deleteProject = async (id: number) => {
+    const previousProjects = projects;
     setProjects((prev) => prev.filter((p) => p.id !== id));
     if (expandedId === id) setExpandedId(null);
+
+    try {
+      const response = await fetch("/api/projects", {
+        method: "DELETE",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ id }),
+      });
+      if (!response.ok) throw new Error("project_delete_failed");
+      setProjectsError(false);
+    } catch {
+      setProjects(previousProjects);
+      setProjectsError(true);
+    }
   };
 
   const openEdit = (project: Project) => {
+    setEditMainFile(null);
     setEditMainPreview(project.mainPhoto.preview);
     setEditMainGradient(project.mainPhoto.gradient);
     const slots: (SubPhoto | null)[] = [null, null, null, null];
     project.subPhotos.forEach((sub, i) => { if (i < 4) slots[i] = sub; });
     setEditSubSlots(slots);
+    setEditSubFiles([null, null, null, null]);
     setEditForm({ title: project.title, description: project.description, category: project.category, order: project.order, featured: project.featured });
     setEditingProject(project);
   };
 
   const handleEditMainFile = useCallback(async (file: File) => {
     if (!file.type.startsWith("image/")) return;
+    setEditMainFile(file);
     setEditMainPreview(await readFile(file));
     setEditMainGradient("");
   }, []);
@@ -257,27 +434,28 @@ export function AdminPage() {
     const url = await readFile(file);
     const newSub: SubPhoto = { id: Date.now(), preview: url, gradient: "" };
     setEditSubSlots((prev) => prev.map((s, i) => i === editActiveSubSlot ? newSub : s));
+    setEditSubFiles((prev) => prev.map((s, i) => i === editActiveSubSlot ? file : s));
     e.target.value = "";
   };
 
-  const removeEditSubSlot = (slot: number) =>
+  const removeEditSubSlot = (slot: number) => {
     setEditSubSlots((prev) => prev.map((s, i) => i === slot ? null : s));
+    setEditSubFiles((prev) => prev.map((s, i) => i === slot ? null : s));
+  };
 
-  const handleEditSubmit = (e: React.FormEvent) => {
+  const handleEditSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!editingProject) return;
-    const updatedProject: Project = {
-      ...editingProject,
-      title: editForm.title,
-      description: editForm.description,
-      category: editForm.category,
-      order: editForm.order,
-      featured: editForm.featured,
-      mainPhoto: { preview: editMainPreview, gradient: editMainGradient },
-      subPhotos: editSubSlots.filter((s): s is SubPhoto => s !== null),
-    };
-    setProjects((prev) => prev.map((p) => p.id === editingProject.id ? updatedProject : p).sort((a, b) => a.order - b.order));
-    setEditingProject(null);
+    if (!editingProject || projectSaving) return;
+
+    setProjectSaving(true);
+    try {
+      await saveProject(editingProject, editForm, editMainFile, editSubSlots, editSubFiles);
+      setEditingProject(null);
+    } catch {
+      setProjectsError(true);
+    } finally {
+      setProjectSaving(false);
+    }
   };
 
   const { totalViews, last14Days, loading: analyticsLoading } = useVercelAnalytics();
@@ -587,9 +765,14 @@ export function AdminPage() {
                       className="px-3 py-1 rounded-full text-xs"
                       style={{ background: "rgba(181,159,120,0.1)", color: "#B59F78", fontWeight: 500 }}
                     >
-                      {leads.filter((l) => l.status === "novo").length} novos
+                      {leadsLoading ? "Carregando..." : `${leads.filter((l) => l.status === "novo").length} novos`}
                     </span>
                   </div>
+                  {leadsError && (
+                    <div className="px-6 py-3 border-b text-[#f87171] text-xs" style={{ borderColor: "rgba(255,255,255,0.05)", fontWeight: 400 }}>
+                      Nao foi possivel carregar os leads salvos. Verifique a configuracao do Redis.
+                    </div>
+                  )}
 
                   {/* Table desktop */}
                   <div className="hidden md:block overflow-x-auto">
@@ -604,6 +787,13 @@ export function AdminPage() {
                         </tr>
                       </thead>
                       <tbody>
+                        {!leadsLoading && leads.length === 0 && (
+                          <tr>
+                            <td colSpan={6} className="px-6 py-8 text-center text-[#A7A39B] text-sm">
+                              Nenhum lead recebido ainda.
+                            </td>
+                          </tr>
+                        )}
                         {leads.map((lead, i) => (
                           <motion.tr
                             key={lead.id}
@@ -685,6 +875,11 @@ export function AdminPage() {
 
                   {/* Cards mobile */}
                   <div className="md:hidden divide-y" style={{ borderColor: "rgba(255,255,255,0.04)" }}>
+                    {!leadsLoading && leads.length === 0 && (
+                      <div className="p-5 text-center text-[#A7A39B] text-sm">
+                        Nenhum lead recebido ainda.
+                      </div>
+                    )}
                     {leads.map((lead) => (
                       <div key={lead.id} className="p-5 space-y-2">
                         <div className="flex items-center justify-between">
@@ -923,13 +1118,14 @@ export function AdminPage() {
                         {/* Submit */}
                         <motion.button type="submit"
                           whileHover={{ scale: 1.01, y: -1 }} whileTap={{ scale: 0.99 }}
+                          disabled={!mainFile || projectSaving}
                           className="w-full py-[14px] rounded-full flex items-center justify-center gap-2 transition-all duration-300"
                           style={{
-                            background: mainPreview ? "#B59F78" : "rgba(181,159,120,0.2)",
-                            color: mainPreview ? "#050808" : "#B59F78",
+                            background: mainFile && !projectSaving ? "#B59F78" : "rgba(181,159,120,0.2)",
+                            color: mainFile && !projectSaving ? "#050808" : "#B59F78",
                             fontWeight: 500, fontSize: "15px", letterSpacing: "0.03em",
-                            boxShadow: mainPreview ? "0 10px 30px rgba(181,159,120,0.2)" : "none",
-                            cursor: mainPreview ? "pointer" : "not-allowed",
+                            boxShadow: mainFile && !projectSaving ? "0 10px 30px rgba(181,159,120,0.2)" : "none",
+                            cursor: mainFile && !projectSaving ? "pointer" : "not-allowed",
                           }}>
                           <Upload size={16} />
                           Adicionar ao portfólio
@@ -943,6 +1139,11 @@ export function AdminPage() {
                 <div>
                   {/* Filter + count */}
                   <div className="flex flex-wrap items-center justify-between gap-3 mb-4">
+                    {projectsError && (
+                      <p className="basis-full text-[#f87171] text-xs leading-relaxed" style={{ fontWeight: 400 }}>
+                        Nao foi possivel sincronizar a galeria. Verifique STORAGE_REDIS_URL e BLOB_READ_WRITE_TOKEN.
+                      </p>
+                    )}
                     <div className="flex items-center gap-2">
                       {([
                         { id: "todos",       label: "Todos",       count: projects.length },
@@ -970,7 +1171,9 @@ export function AdminPage() {
                     </div>
                     <div className="flex items-center gap-1.5">
                       <GripVertical size={14} style={{ color: "#A7A39B" }} />
-                      <span className="text-[#A7A39B] text-xs hidden sm:block" style={{ fontWeight: 400 }}>Ordene pelo campo Ordem</span>
+                      <span className="text-[#A7A39B] text-xs hidden sm:block" style={{ fontWeight: 400 }}>
+                        {projectsLoading ? "Carregando projetos..." : "Ordene pelo campo Ordem"}
+                      </span>
                     </div>
                   </div>
 
@@ -1310,8 +1513,9 @@ export function AdminPage() {
 
                       <motion.button type="submit"
                         whileHover={{ scale: 1.01, y: -1 }} whileTap={{ scale: 0.99 }}
+                        disabled={projectSaving}
                         className="w-full py-[14px] rounded-full flex items-center justify-center gap-2 transition-all duration-300 mt-2"
-                        style={{ background: "#B59F78", color: "#050808", fontWeight: 500, fontSize: "15px", letterSpacing: "0.03em", boxShadow: "0 10px 30px rgba(181,159,120,0.2)" }}>
+                        style={{ background: projectSaving ? "rgba(181,159,120,0.2)" : "#B59F78", color: projectSaving ? "#B59F78" : "#050808", fontWeight: 500, fontSize: "15px", letterSpacing: "0.03em", boxShadow: projectSaving ? "none" : "0 10px 30px rgba(181,159,120,0.2)", cursor: projectSaving ? "not-allowed" : "pointer" }}>
                         Salvar alterações
                       </motion.button>
                     </div>

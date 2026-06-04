@@ -9,6 +9,7 @@ export function ContactSection() {
     phone: "",
     message: "",
   });
+  const [submitStatus, setSubmitStatus] = useState<"idle" | "sending" | "success" | "error">("idle");
 
   const [focused, setFocused] = useState({
     name: false,
@@ -17,10 +18,27 @@ export function ContactSection() {
     message: false,
   });
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    console.log("Form submitted:", formData);
-    // Add form submission logic here
+    setSubmitStatus("sending");
+
+    try {
+      const response = await fetch("/api/leads", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(formData),
+      });
+
+      if (!response.ok) {
+        throw new Error("lead_submit_failed");
+      }
+
+      setFormData({ name: "", email: "", phone: "", message: "" });
+      setFocused({ name: false, email: false, phone: false, message: false });
+      setSubmitStatus("success");
+    } catch {
+      setSubmitStatus("error");
+    }
   };
 
   const contactInfo = [
@@ -98,6 +116,7 @@ export function ContactSection() {
                   onBlur={() => setFocused({ ...focused, name: formData.name !== "" })}
                   className="w-full px-6 py-4 bg-[#0C1111] border border-white/5 rounded-[12px] text-[#F2F0EA] focus:border-[#B59F78] focus:outline-none transition-all duration-300"
                   style={{ fontFamily: 'Inter, sans-serif' }}
+                  disabled={submitStatus === "sending"}
                   required
                 />
                 <label
@@ -124,6 +143,7 @@ export function ContactSection() {
                   onBlur={() => setFocused({ ...focused, email: formData.email !== "" })}
                   className="w-full px-6 py-4 bg-[#0C1111] border border-white/5 rounded-[12px] text-[#F2F0EA] focus:border-[#B59F78] focus:outline-none transition-all duration-300"
                   style={{ fontFamily: 'Inter, sans-serif' }}
+                  disabled={submitStatus === "sending"}
                   required
                 />
                 <label
@@ -150,6 +170,7 @@ export function ContactSection() {
                   onBlur={() => setFocused({ ...focused, phone: formData.phone !== "" })}
                   className="w-full px-6 py-4 bg-[#0C1111] border border-white/5 rounded-[12px] text-[#F2F0EA] focus:border-[#B59F78] focus:outline-none transition-all duration-300"
                   style={{ fontFamily: 'Inter, sans-serif' }}
+                  disabled={submitStatus === "sending"}
                 />
                 <label
                   htmlFor="phone"
@@ -175,6 +196,7 @@ export function ContactSection() {
                   rows={5}
                   className="w-full px-6 py-4 bg-[#0C1111] border border-white/5 rounded-[12px] text-[#F2F0EA] focus:border-[#B59F78] focus:outline-none transition-all duration-300 resize-none"
                   style={{ fontFamily: 'Inter, sans-serif' }}
+                  disabled={submitStatus === "sending"}
                   required
                 />
                 <label
@@ -195,12 +217,23 @@ export function ContactSection() {
                 type="submit"
                 whileHover={{ scale: 1.02, y: -2 }}
                 whileTap={{ scale: 0.98 }}
-                className="w-full px-8 py-4 bg-[#B59F78] text-[#050808] rounded-full flex items-center justify-center gap-3 transition-all duration-300 hover:bg-[#C8B28A]"
+                disabled={submitStatus === "sending"}
+                className="w-full px-8 py-4 bg-[#B59F78] text-[#050808] rounded-full flex items-center justify-center gap-3 transition-all duration-300 hover:bg-[#C8B28A] disabled:cursor-not-allowed disabled:opacity-70"
                 style={{ fontSize: '16px', fontWeight: 500, letterSpacing: '0.02em', boxShadow: '0 10px 30px rgba(181, 159, 120, 0.3)' }}
               >
-                Enviar Mensagem
+                {submitStatus === "sending" ? "Enviando..." : "Enviar Mensagem"}
                 <Send size={20} />
               </motion.button>
+              {submitStatus === "success" && (
+                <p className="text-[#B59F78] text-sm text-center" style={{ fontWeight: 400 }}>
+                  Mensagem enviada com sucesso.
+                </p>
+              )}
+              {submitStatus === "error" && (
+                <p className="text-[#f87171] text-sm text-center" style={{ fontWeight: 400 }}>
+                  Nao foi possivel enviar agora. Tente novamente em instantes.
+                </p>
+              )}
             </form>
           </motion.div>
         </div>
