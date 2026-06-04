@@ -1,21 +1,45 @@
-import { Redis } from "@upstash/redis";
+import Redis from "ioredis";
+import type { IncomingMessage, ServerResponse } from "http";
 
-export const config = { runtime: "edge" };
+export const config = { runtime: "nodejs" };
 
-export default async function handler(): Promise<Response> {
-  const url   = process.env.UPSTASH_REDIS_REST_URL;
-  const token = process.env.UPSTASH_REDIS_REST_TOKEN;
+const getClient = (() => {
+  let client: Redis | null = null;
+  return () => {
+    if (!client) {
+      const url = process.env.STORAGE_REDIS_URL!;
+      client = new Redis(url, {
+        tls: url.startsWith("rediss://") ? { rejectUnauthorized: false } : undefined,
+        connectTimeout: 8000,
+        commandTimeout: 6000,
+        maxRetriesPerRequest: 1,
+        enableReadyCheck: false,
+        lazyConnect: true,
+      });
+    }
+    return client;
+  };
+})();
 
-  if (!url || !token) {
-    return Response.json({ ok: false, error: "redis_not_configured" }, { status: 503 });
+function reply(res: ServerResponse, status: number, body: unknown) {
+  res.writeHead(status, { "Content-Type": "application/json" });
+  res.end(JSON.stringify(body));
+}
+
+export default async function handler(_req: IncomingMessage, res: ServerResponse): Promise<void> {
+  const url = process.env.STORAGE_REDIS_URL;
+  if (!url) {
+    reply(res, 503, { ok: false, error: "redis_not_configured" });
+    return;
   }
 
   try {
-    const redis = new Redis({ url, token });
+    const r = getClient();
     const key = `visits:${new Date().toISOString().split("T")[0]}`;
-    await redis.pipeline().incr(key).expire(key, 7_776_000).exec();
-    return Response.json({ ok: true });
+    await r.incr(key);
+    await r.expire(key, 7_776_000);
+    reply(res, 200, { ok: true });
   } catch {
-    return Response.json({ ok: false }, { status: 500 });
+    reply(res, 500, { ok: false, error: "redis_error" });
   }
 }
