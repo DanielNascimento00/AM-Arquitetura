@@ -1,6 +1,7 @@
 import { del, put } from "@vercel/blob";
+import { readFile } from "fs/promises";
+import formidable, { type Fields, type Files, type File as FormidableFile } from "formidable";
 import Redis from "ioredis";
-import { Readable } from "stream";
 import type { IncomingMessage, ServerResponse } from "http";
 
 export const config = {
@@ -57,6 +58,11 @@ function sanitize(value: unknown, limit = 1000): string {
   return String(value ?? "").trim().slice(0, limit);
 }
 
+function firstField(fields: Fields, key: string): string {
+  const value = fields[key];
+  return Array.isArray(value) ? String(value[0] ?? "") : String(value ?? "");
+}
+
 function toBool(value: unknown): boolean {
   return value === true || value === "true" || value === "1" || value === "on";
 }
@@ -108,8 +114,8 @@ function assertBlobConfigured(): { status: number; body: unknown } | null {
   return null;
 }
 
-function validateImage(file: File): { status: number; body: unknown } | null {
-  if (!file.type.startsWith("image/")) {
+function validateImage(file: FormidableFile): { status: number; body: unknown } | null {
+  if (!file.mimetype?.startsWith("image/")) {
     return json(400, { error: "invalid_image_type" });
   }
   if (file.size > MAX_IMAGE_SIZE) {
@@ -128,11 +134,13 @@ function safeFileName(name: string): string {
     .slice(0, 80) || "foto";
 }
 
-async function uploadPhoto(projectId: number, file: File, slot: string): Promise<ProjectPhoto> {
-  const pathname = `portfolio/${projectId}/${slot}-${Date.now()}-${safeFileName(file.name)}`;
-  const blob = await put(pathname, file, {
+async function uploadPhoto(projectId: number, file: FormidableFile, slot: string): Promise<ProjectPhoto> {
+  const buffer = await readFile(file.filepath);
+  const pathname = `portfolio/${projectId}/${slot}-${Date.now()}-${safeFileName(file.originalFilename ?? "foto")}`;
+  const blob = await put(pathname, buffer, {
     access: "public",
     addRandomSuffix: true,
+    contentType: file.mimetype ?? "application/octet-stream",
   });
 
   return {
@@ -148,9 +156,16 @@ async function deletePhotos(photos: ProjectPhoto[]): Promise<void> {
   await del(pathnames).catch(() => undefined);
 }
 
-function getFile(form: FormData, key: string): File | null {
-  const value = form.get(key);
-  return value instanceof File && value.size > 0 ? value : null;
+function getFile(files: Files, key: string): FormidableFile | null {
+  const value = files[key];
+  const file = Array.isArray(value) ? value[0] : value;
+  return file && file.size > 0 ? file : null;
+}
+
+function getFiles(files: Files, key: string): FormidableFile[] {
+  const value = files[key];
+  if (!value) return [];
+  return (Array.isArray(value) ? value : [value]).filter((file) => file.size > 0);
 }
 
 async function readJson(req: IncomingMessage): Promise<Record<string, unknown> | null> {
@@ -168,23 +183,21 @@ async function readJson(req: IncomingMessage): Promise<Record<string, unknown> |
   });
 }
 
-async function readFormData(req: IncomingMessage): Promise<FormData> {
-  const protocol = req.headers["x-forwarded-proto"] ?? "https";
-  const host = req.headers.host ?? "localhost";
-  const url = `${protocol}://${host}${req.url ?? "/api/projects"}`;
-  const request = new Request(url, {
-    method: req.method,
-    headers: req.headers as HeadersInit,
-    body: Readable.toWeb(req) as ReadableStream,
-    duplex: "half",
-  } as RequestInit & { duplex: "half" });
+async function readMultipart(req: IncomingMessage): Promise<{ fields: Fields; files: Files }> {
+  const form = formidable({
+    maxFileSize: MAX_IMAGE_SIZE,
+    multiples: true,
+  });
 
-  return Promise.race([
-    request.formData(),
-    new Promise<FormData>((_, reject) => {
-      setTimeout(() => reject(new Error("form_data_timeout")), 15_000);
-    }),
-  ]);
+  return new Promise((resolve, reject) => {
+    form.parse(req, (error, fields, files) => {
+      if (error) {
+        reject(error);
+        return;
+      }
+      resolve({ fields, files });
+    });
+  });
 }
 
 export default async function handler(req: IncomingMessage, res: ServerResponse): Promise<void> {
@@ -203,14 +216,14 @@ export default async function handler(req: IncomingMessage, res: ServerResponse)
     }
 
     if (req.method === "POST") {
-      const form = await readFormData(req);
-      const title = sanitize(form.get("title"), 180);
-      const description = sanitize(form.get("description"), 800);
-      const category = sanitize(form.get("category")) as PhotoCategory;
-      const featured = toBool(form.get("featured"));
+      const { fields, files } = await readMultipart(req);
+      const title = sanitize(firstField(fields, "title"), 180);
+      const description = sanitize(firstField(fields, "description"), 800);
+      const category = sanitize(firstField(fields, "category")) as PhotoCategory;
+      const featured = toBool(firstField(fields, "featured"));
       const projects = await readProjects(r);
-      const order = toOrder(form.get("order"), projects.length + 1);
-      const mainFile = getFile(form, "mainPhoto");
+      const order = toOrder(firstField(fields, "order"), projects.length + 1);
+      const mainFile = getFile(files, "mainPhoto");
 
       if (!title || !categories.includes(category) || !mainFile) {
         reply(res, 400, { error: "missing_required_fields" });
@@ -223,7 +236,7 @@ export default async function handler(req: IncomingMessage, res: ServerResponse)
         return;
       }
 
-      const subFiles = form.getAll("subPhotos").filter((file): file is File => file instanceof File && file.size > 0).slice(0, 4);
+      const subFiles = getFiles(files, "subPhotos").slice(0, 4);
       for (const file of subFiles) {
         const validation = validateImage(file);
         if (validation) {
@@ -256,8 +269,8 @@ export default async function handler(req: IncomingMessage, res: ServerResponse)
     }
 
     if (req.method === "PATCH") {
-      const form = await readFormData(req);
-      const id = Number(form.get("id"));
+      const { fields, files } = await readMultipart(req);
+      const id = Number(firstField(fields, "id"));
       const projects = await readProjects(r);
       const current = projects.find((project) => project.id === id);
 
@@ -266,13 +279,13 @@ export default async function handler(req: IncomingMessage, res: ServerResponse)
         return;
       }
 
-      const category = sanitize(form.get("category")) as PhotoCategory;
+      const category = sanitize(firstField(fields, "category")) as PhotoCategory;
       if (!categories.includes(category)) {
         reply(res, 400, { error: "invalid_category" });
         return;
       }
 
-      const mainFile = getFile(form, "mainPhoto");
+      const mainFile = getFile(files, "mainPhoto");
       if (mainFile) {
         const validation = validateImage(mainFile);
         if (validation) {
@@ -282,11 +295,11 @@ export default async function handler(req: IncomingMessage, res: ServerResponse)
       }
 
       const nextMainPhoto = mainFile ? await uploadPhoto(id, mainFile, "main") : current.mainPhoto;
-      const keptSubPhotoIds = JSON.parse(sanitize(form.get("keptSubPhotoIds")) || "[]") as number[];
+      const keptSubPhotoIds = JSON.parse(sanitize(firstField(fields, "keptSubPhotoIds")) || "[]") as number[];
       const nextSubPhotos: ProjectPhoto[] = [];
 
       for (let slot = 0; slot < 4; slot += 1) {
-        const slotFile = getFile(form, `subPhoto_${slot}`);
+        const slotFile = getFile(files, `subPhoto_${slot}`);
         if (slotFile) {
           const validation = validateImage(slotFile);
           if (validation) {
@@ -303,11 +316,11 @@ export default async function handler(req: IncomingMessage, res: ServerResponse)
 
       const updated: Project = {
         ...current,
-        title: sanitize(form.get("title"), 180),
-        description: sanitize(form.get("description"), 800),
+        title: sanitize(firstField(fields, "title"), 180),
+        description: sanitize(firstField(fields, "description"), 800),
         category,
-        order: toOrder(form.get("order"), current.order),
-        featured: toBool(form.get("featured")),
+        order: toOrder(firstField(fields, "order"), current.order),
+        featured: toBool(firstField(fields, "featured")),
         mainPhoto: nextMainPhoto,
         subPhotos: nextSubPhotos,
         updatedAt: new Date().toISOString(),
