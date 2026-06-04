@@ -27,12 +27,21 @@ function reply(res: ServerResponse, status: number, body: unknown) {
 }
 
 export default async function handler(req: IncomingMessage, res: ServerResponse): Promise<void> {
-  // Rejeita requisições cross-origin (bloqueia bots que enviam Origin de outro domínio)
+  // Rejeita requisições cross-origin com hostname exato (não substring)
   const host = (req.headers["host"] ?? "").split(":")[0];
   const origin = req.headers["origin"] ?? "";
-  if (origin && !origin.includes(host)) {
-    reply(res, 403, { ok: false, error: "forbidden" });
-    return;
+  if (origin) {
+    let parsedHost: string;
+    try {
+      parsedHost = new URL(origin).hostname;
+    } catch {
+      reply(res, 403, { ok: false, error: "forbidden" });
+      return;
+    }
+    if (parsedHost !== host) {
+      reply(res, 403, { ok: false, error: "forbidden" });
+      return;
+    }
   }
 
   const url = process.env.STORAGE_REDIS_URL;

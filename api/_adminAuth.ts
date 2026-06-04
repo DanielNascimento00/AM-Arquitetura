@@ -2,7 +2,8 @@ import { createHmac, timingSafeEqual } from "crypto";
 import type { IncomingMessage } from "http";
 
 export function computeToken(secret: string): string {
-  return createHmac("sha256", secret).update("admin-session").digest("hex");
+  const day = new Date().toISOString().slice(0, 10); // YYYY-MM-DD (UTC)
+  return createHmac("sha256", secret).update(`admin-session:${day}`).digest("hex");
 }
 
 export function validateAdminRequest(req: IncomingMessage): boolean {
