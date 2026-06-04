@@ -1,23 +1,6 @@
-import Redis from "ioredis";
+import { Redis } from "@upstash/redis";
 
-export const config = { runtime: "nodejs" };
-
-const getClient = (() => {
-  let client: Redis | null = null;
-  return () => {
-    if (!client) {
-      const url = process.env.STORAGE_REDIS_URL!;
-      client = new Redis(url, {
-        tls: url.startsWith("rediss://") ? { rejectUnauthorized: false } : undefined,
-        connectTimeout: 5000,
-        commandTimeout: 4000,
-        maxRetriesPerRequest: 1,
-        enableReadyCheck: false,
-      });
-    }
-    return client;
-  };
-})();
+export const config = { runtime: "edge" };
 
 function formatDay(dateStr: string): string {
   const [, month, day] = dateStr.split("-");
@@ -25,21 +8,34 @@ function formatDay(dateStr: string): string {
 }
 
 export default async function handler(): Promise<Response> {
-  const url = process.env.STORAGE_REDIS_URL;
-  if (!url) {
+  const url   = process.env.UPSTASH_REDIS_REST_URL;
+  const token = process.env.UPSTASH_REDIS_REST_TOKEN;
+
+  if (!url || !token) {
     return Response.json({ error: "redis_not_configured" }, { status: 503 });
   }
 
   try {
-    const r = getClient();
-    const days = [];
+    const redis = new Redis({ url, token });
+
+    const dateStrs: string[] = [];
     for (let i = 13; i >= 0; i--) {
       const d = new Date();
       d.setDate(d.getDate() - i);
-      const dateStr = d.toISOString().split("T")[0];
-      const count = Number((await r.get(`visits:${dateStr}`)) ?? 0);
-      days.push({ key: formatDay(dateStr), total: count });
+      dateStrs.push(d.toISOString().split("T")[0]);
     }
+
+    const pipeline = redis.pipeline();
+    for (const dateStr of dateStrs) {
+      pipeline.get(`visits:${dateStr}`);
+    }
+    const results = await pipeline.exec();
+
+    const days = dateStrs.map((dateStr, i) => ({
+      key:   formatDay(dateStr),
+      total: Number(results[i] ?? 0),
+    }));
+
     return Response.json({ data: days });
   } catch {
     return Response.json({ error: "redis_error" }, { status: 500 });
