@@ -1,11 +1,60 @@
+import Redis from "ioredis";
 import { createHmac } from "crypto";
 import type { IncomingMessage, ServerResponse } from "http";
 
 export const config = { runtime: "nodejs", api: { bodyParser: false } };
 
+const MAX_ATTEMPTS = 10;
+const LOCKOUT_SECS = 15 * 60;
+
+const getClient = (() => {
+  let client: Redis | null = null;
+  return () => {
+    const url = process.env.STORAGE_REDIS_URL;
+    if (!url) return null;
+    if (!client) {
+      client = new Redis(url, {
+        tls: url.startsWith("rediss://") ? { rejectUnauthorized: false } : undefined,
+        connectTimeout: 3000,
+        commandTimeout: 2000,
+        maxRetriesPerRequest: 0,
+        enableReadyCheck: false,
+        lazyConnect: true,
+      });
+      client.on("error", () => {});
+    }
+    return client;
+  };
+})();
+
 function computeToken(secret: string): string {
   const day = new Date().toISOString().slice(0, 10);
   return createHmac("sha256", secret).update(`admin-session:${day}`).digest("hex");
+}
+
+function getClientIp(req: IncomingMessage): string {
+  const forwarded = req.headers["x-forwarded-for"];
+  const raw = Array.isArray(forwarded) ? forwarded[0] : forwarded?.split(",")[0];
+  return (raw ?? "unknown").trim();
+}
+
+async function isBruteForceBlocked(ip: string): Promise<boolean> {
+  const r = getClient();
+  if (!r) return false;
+  try {
+    const key = `brute:auth:${ip}`;
+    const count = await r.incr(key);
+    if (count === 1) await r.expire(key, LOCKOUT_SECS);
+    return count > MAX_ATTEMPTS;
+  } catch {
+    return false;
+  }
+}
+
+async function clearBruteForce(ip: string): Promise<void> {
+  const r = getClient();
+  if (!r) return;
+  try { await r.del(`brute:auth:${ip}`); } catch { /* ignora */ }
 }
 
 function reply(res: ServerResponse, status: number, body: unknown) {
@@ -41,6 +90,13 @@ export default async function handler(req: IncomingMessage, res: ServerResponse)
       return;
     }
 
+    const ip = getClientIp(req);
+
+    if (await isBruteForceBlocked(ip)) {
+      reply(res, 429, { error: "too_many_attempts" });
+      return;
+    }
+
     const body = await readJson(req);
     const email = String(body.email ?? "").trim();
     const password = String(body.password ?? "");
@@ -51,8 +107,9 @@ export default async function handler(req: IncomingMessage, res: ServerResponse)
       return;
     }
 
+    await clearBruteForce(ip);
     reply(res, 200, { token: computeToken(adminSecret) });
-  } catch (err) {
-    reply(res, 500, { error: "internal_error", detail: String(err) });
+  } catch {
+    reply(res, 500, { error: "internal_error" });
   }
 }
