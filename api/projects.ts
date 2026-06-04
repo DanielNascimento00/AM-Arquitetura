@@ -34,7 +34,8 @@ interface Project {
 
 const PROJECTS_KEY = "portfolio:projects";
 const categories: PhotoCategory[] = ["arquitetura", "marcenaria"];
-const MAX_IMAGE_SIZE = 10 * 1024 * 1024;
+const MAX_MEDIA_SIZE = 100 * 1024 * 1024;
+const MAX_SUB_MEDIA = 12;
 
 const getClient = (() => {
   let client: Redis | null = null;
@@ -114,12 +115,13 @@ function assertBlobConfigured(): { status: number; body: unknown } | null {
   return null;
 }
 
-function validateImage(file: FormidableFile): { status: number; body: unknown } | null {
-  if (!file.mimetype?.startsWith("image/")) {
-    return json(400, { error: "invalid_image_type" });
+function validateMedia(file: FormidableFile): { status: number; body: unknown } | null {
+  const mimetype = file.mimetype ?? "";
+  if (!mimetype.startsWith("image/") && mimetype !== "video/mp4") {
+    return json(400, { error: "invalid_media_type" });
   }
-  if (file.size > MAX_IMAGE_SIZE) {
-    return json(400, { error: "image_too_large" });
+  if (file.size > MAX_MEDIA_SIZE) {
+    return json(400, { error: "media_too_large" });
   }
   return null;
 }
@@ -203,7 +205,7 @@ async function readJson(req: IncomingMessage): Promise<Record<string, unknown> |
 
 async function readMultipart(req: IncomingMessage): Promise<{ fields: Fields; files: Files }> {
   const form = formidable({
-    maxFileSize: MAX_IMAGE_SIZE,
+    maxFileSize: MAX_MEDIA_SIZE,
     multiples: true,
   });
 
@@ -248,15 +250,15 @@ export default async function handler(req: IncomingMessage, res: ServerResponse)
         return;
       }
 
-      const mainValidation = validateImage(mainFile);
+      const mainValidation = validateMedia(mainFile);
       if (mainValidation) {
         reply(res, mainValidation.status, mainValidation.body);
         return;
       }
 
-      const subFiles = getFiles(files, "subPhotos").slice(0, 4);
+      const subFiles = getFiles(files, "subPhotos").slice(0, MAX_SUB_MEDIA);
       for (const file of subFiles) {
-        const validation = validateImage(file);
+        const validation = validateMedia(file);
         if (validation) {
           reply(res, validation.status, validation.body);
           return;
@@ -305,7 +307,7 @@ export default async function handler(req: IncomingMessage, res: ServerResponse)
 
       const mainFile = getFile(files, "mainPhoto");
       if (mainFile) {
-        const validation = validateImage(mainFile);
+        const validation = validateMedia(mainFile);
         if (validation) {
           reply(res, validation.status, validation.body);
           return;
@@ -316,10 +318,10 @@ export default async function handler(req: IncomingMessage, res: ServerResponse)
       const keptSubPhotoIds = JSON.parse(sanitize(firstField(fields, "keptSubPhotoIds")) || "[]") as number[];
       const nextSubPhotos: ProjectPhoto[] = [];
 
-      for (let slot = 0; slot < 4; slot += 1) {
+      for (let slot = 0; slot < MAX_SUB_MEDIA; slot += 1) {
         const slotFile = getFile(files, `subPhoto_${slot}`);
         if (slotFile) {
-          const validation = validateImage(slotFile);
+          const validation = validateMedia(slotFile);
           if (validation) {
             reply(res, validation.status, validation.body);
             return;

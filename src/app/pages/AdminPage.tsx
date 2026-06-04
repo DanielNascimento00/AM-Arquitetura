@@ -14,6 +14,12 @@ import { Link } from "react-router";
 import { ImageWithFallback } from "@/app/components/figma/ImageWithFallback";
 import logoImg from "@/imports/image-2.png";
 
+const MAX_SUB_MEDIA = 12;
+const MEDIA_ACCEPT = "image/*,video/mp4";
+const emptyFileSlots = () => Array.from({ length: MAX_SUB_MEDIA }, () => null) as (File | null)[];
+const emptyPreviewSlots = () => Array.from({ length: MAX_SUB_MEDIA }, () => null) as (string | null)[];
+const emptySubPhotoSlots = () => Array.from({ length: MAX_SUB_MEDIA }, () => null) as (SubPhoto | null)[];
+
 /* ─── Mock data ──────────────────────────────────────────── */
 
 const visitData = [
@@ -82,6 +88,28 @@ interface ApiProject {
   featured: boolean;
   mainPhoto: { id: number; url?: string; preview?: string | null; pathname?: string; gradient?: string };
   subPhotos: { id: number; url?: string; preview?: string | null; pathname?: string; gradient?: string }[];
+}
+
+function isVideoSrc(src: string | null | undefined): boolean {
+  if (!src) return false;
+  return src.startsWith("data:video/") || src.toLowerCase().includes(".mp4");
+}
+
+function MediaPreview({ src, alt, className }: { src: string; alt?: string; className?: string }) {
+  if (isVideoSrc(src)) {
+    return (
+      <video
+        src={src}
+        className={className}
+        muted
+        loop
+        playsInline
+        preload="metadata"
+      />
+    );
+  }
+
+  return <img src={src} alt={alt ?? ""} className={className} />;
 }
 
 const categoryConfig: Record<PhotoCategory, { label: string; color: string; bg: string }> = {
@@ -183,8 +211,8 @@ export function AdminPage() {
   const [isDragging, setIsDragging] = useState(false);
   const [mainFile, setMainFile] = useState<File | null>(null);
   const [mainPreview, setMainPreview] = useState<string | null>(null);
-  const [subFiles, setSubFiles] = useState<(File | null)[]>([null, null, null, null]);
-  const [subPreviews, setSubPreviews] = useState<(string | null)[]>([null, null, null, null]);
+  const [subFiles, setSubFiles] = useState<(File | null)[]>(emptyFileSlots);
+  const [subPreviews, setSubPreviews] = useState<(string | null)[]>(emptyPreviewSlots);
   const [activeSubSlot, setActiveSubSlot] = useState<number | null>(null);
   const [photoForm, setPhotoForm] = useState({ title: "", description: "", category: "arquitetura" as PhotoCategory, order: 1, featured: false });
   const mainFileRef = useRef<HTMLInputElement>(null);
@@ -195,8 +223,8 @@ export function AdminPage() {
   const [editMainFile, setEditMainFile] = useState<File | null>(null);
   const [editMainPreview, setEditMainPreview] = useState<string | null>(null);
   const [editMainGradient, setEditMainGradient] = useState<string>("");
-  const [editSubSlots, setEditSubSlots] = useState<(SubPhoto | null)[]>([null, null, null, null]);
-  const [editSubFiles, setEditSubFiles] = useState<(File | null)[]>([null, null, null, null]);
+  const [editSubSlots, setEditSubSlots] = useState<(SubPhoto | null)[]>(emptySubPhotoSlots);
+  const [editSubFiles, setEditSubFiles] = useState<(File | null)[]>(emptyFileSlots);
   const [editActiveSubSlot, setEditActiveSubSlot] = useState<number | null>(null);
   const [editIsDragging, setEditIsDragging] = useState(false);
   const [editForm, setEditForm] = useState({ title: "", description: "", category: "arquitetura" as PhotoCategory, order: 1, featured: false });
@@ -207,7 +235,7 @@ export function AdminPage() {
     new Promise((res) => { const r = new FileReader(); r.onload = (e) => res(e.target?.result as string); r.readAsDataURL(file); });
 
   const handleMainFile = useCallback(async (file: File) => {
-    if (!file.type.startsWith("image/")) return;
+    if (!file.type.startsWith("image/") && file.type !== "video/mp4") return;
     setMainFile(file);
     setMainPreview(await readFile(file));
   }, []);
@@ -259,8 +287,8 @@ export function AdminPage() {
       setProjectsError(false);
       setMainFile(null);
       setMainPreview(null);
-      setSubFiles([null, null, null, null]);
-      setSubPreviews([null, null, null, null]);
+      setSubFiles(emptyFileSlots());
+      setSubPreviews(emptyPreviewSlots());
       setPhotoForm({ title: "", description: "", category: "arquitetura", order: projects.length + 2, featured: false });
     } catch {
       setProjectsError(true);
@@ -360,7 +388,7 @@ export function AdminPage() {
     setProjects((prev) => prev.map((p) => ({ ...p, featured: p.id === id ? !p.featured : p.featured })));
 
     try {
-      await saveProject(project, { title: project.title, description: project.description, category: project.category, order: project.order, featured: !project.featured }, null, project.subPhotos, [null, null, null, null]);
+      await saveProject(project, { title: project.title, description: project.description, category: project.category, order: project.order, featured: !project.featured }, null, project.subPhotos, emptyFileSlots());
     } catch {
       setProjects(previousProjects);
       setProjectsError(true);
@@ -390,16 +418,16 @@ export function AdminPage() {
     setEditMainFile(null);
     setEditMainPreview(project.mainPhoto.preview);
     setEditMainGradient(project.mainPhoto.gradient);
-    const slots: (SubPhoto | null)[] = [null, null, null, null];
-    project.subPhotos.forEach((sub, i) => { if (i < 4) slots[i] = sub; });
+    const slots = emptySubPhotoSlots();
+    project.subPhotos.forEach((sub, i) => { if (i < MAX_SUB_MEDIA) slots[i] = sub; });
     setEditSubSlots(slots);
-    setEditSubFiles([null, null, null, null]);
+    setEditSubFiles(emptyFileSlots());
     setEditForm({ title: project.title, description: project.description, category: project.category, order: project.order, featured: project.featured });
     setEditingProject(project);
   };
 
   const handleEditMainFile = useCallback(async (file: File) => {
-    if (!file.type.startsWith("image/")) return;
+    if (!file.type.startsWith("image/") && file.type !== "video/mp4") return;
     setEditMainFile(file);
     setEditMainPreview(await readFile(file));
     setEditMainGradient("");
@@ -917,7 +945,7 @@ export function AdminPage() {
                 <input
                   ref={subFileRef}
                   type="file"
-                  accept="image/*"
+                  accept={MEDIA_ACCEPT}
                   className="hidden"
                   onChange={handleSubFileChange}
                 />
@@ -955,7 +983,7 @@ export function AdminPage() {
                         >
                           {mainPreview ? (
                             <>
-                              <img src={mainPreview} alt="Foto principal" className="absolute inset-0 w-full h-full object-cover" />
+                              <MediaPreview src={mainPreview} alt="Foto principal" className="absolute inset-0 w-full h-full object-cover" />
                               <div className="absolute inset-0 bg-black/40 flex items-center justify-center opacity-0 hover:opacity-100 transition-opacity duration-300">
                                 <div className="flex flex-col items-center gap-2 text-white">
                                   <Upload size={22} />
@@ -969,19 +997,19 @@ export function AdminPage() {
                                 <Upload size={20} style={{ color: "#B59F78" }} />
                               </div>
                               <p className="text-[#F2F0EA] text-sm" style={{ fontWeight: 500 }}>Arraste ou clique</p>
-                              <p className="text-[#A7A39B] text-xs">PNG, JPG, WEBP — até 10MB</p>
+                              <p className="text-[#A7A39B] text-xs">PNG, JPG, WEBP ou MP4 - ate 100MB</p>
                             </div>
                           )}
-                          <input ref={mainFileRef} type="file" accept="image/*" className="hidden"
+                          <input ref={mainFileRef} type="file" accept={MEDIA_ACCEPT} className="hidden"
                             onChange={(e) => { const f = e.target.files?.[0]; if (f) handleMainFile(f); }} />
                         </div>
 
                         {/* Sub-photos 2×2 grid */}
                         <p className="text-[#A7A39B] text-xs tracking-wide uppercase pt-1" style={{ fontWeight: 500 }}>
-                          Subfotos <span style={{ color: "rgba(167,163,155,0.5)", textTransform: "none", letterSpacing: 0 }}>(até 4)</span>
+                          Submidias <span style={{ color: "rgba(167,163,155,0.5)", textTransform: "none", letterSpacing: 0 }}>(ate {MAX_SUB_MEDIA})</span>
                         </p>
                         <div className="grid grid-cols-4 gap-2">
-                          {[0, 1, 2, 3].map((slot) => {
+                          {Array.from({ length: MAX_SUB_MEDIA }, (_, slot) => {
                             const preview = subPreviews[slot];
                             return (
                               <div key={slot} className="relative group">
@@ -996,7 +1024,7 @@ export function AdminPage() {
                                   onClick={() => openSubSlot(slot)}
                                 >
                                   {preview ? (
-                                    <img src={preview} alt={`Subfoto ${slot + 1}`} className="w-full h-full object-cover" />
+                                    <MediaPreview src={preview} alt={`Subfoto ${slot + 1}`} className="w-full h-full object-cover" />
                                   ) : (
                                     <div className="w-full h-full flex items-center justify-center">
                                       <span style={{ color: "rgba(181,159,120,0.4)", fontSize: "20px", lineHeight: 1 }}>+</span>
@@ -1187,7 +1215,7 @@ export function AdminPage() {
                             {/* Main photo */}
                             <div className="relative overflow-hidden" style={{ aspectRatio: "4/3" }}>
                               {project.mainPhoto.preview ? (
-                                <img src={project.mainPhoto.preview} alt={project.title}
+                                <MediaPreview src={project.mainPhoto.preview} alt={project.title}
                                   className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-105" />
                               ) : (
                                 <div className="w-full h-full transition-transform duration-500 group-hover:scale-105"
@@ -1252,7 +1280,7 @@ export function AdminPage() {
                                       className="rounded-[6px] overflow-hidden flex-1 border"
                                       style={{ aspectRatio: "1/1", background: sub ? "transparent" : "rgba(255,255,255,0.03)", borderColor: sub ? "rgba(181,159,120,0.2)" : "rgba(255,255,255,0.05)" }}>
                                       {sub?.preview ? (
-                                        <img src={sub.preview} alt="" className="w-full h-full object-cover" />
+                                        <MediaPreview src={sub.preview} className="w-full h-full object-cover" />
                                       ) : sub ? (
                                         <div className="w-full h-full" style={{ background: sub.gradient }} />
                                       ) : (
@@ -1272,7 +1300,7 @@ export function AdminPage() {
                                     border: `1px solid ${isExpanded ? "rgba(181,159,120,0.25)" : "rgba(255,255,255,0.06)"}`,
                                     fontWeight: 500,
                                   }}>
-                                  {project.subPhotos.length} foto{project.subPhotos.length !== 1 ? "s" : ""}
+                                  {project.subPhotos.length} midia{project.subPhotos.length !== 1 ? "s" : ""}
                                 </button>
                               </div>
 
@@ -1288,14 +1316,14 @@ export function AdminPage() {
                                   >
                                     <div className="pt-2 border-t" style={{ borderColor: "rgba(255,255,255,0.05)" }}>
                                       <p className="text-[#A7A39B] text-[10px] tracking-widest uppercase mb-2" style={{ fontWeight: 500 }}>
-                                        Subfotos do projeto
+                                        Submidias do projeto
                                       </p>
                                       {project.subPhotos.length > 0 ? (
                                         <div className="grid grid-cols-2 gap-1.5">
                                           {project.subPhotos.map((sub) => (
                                             <div key={sub.id} className="rounded-[8px] overflow-hidden" style={{ aspectRatio: "4/3" }}>
                                               {sub.preview ? (
-                                                <img src={sub.preview} alt="" className="w-full h-full object-cover" />
+                                                <MediaPreview src={sub.preview} className="w-full h-full object-cover" />
                                               ) : (
                                                 <div className="w-full h-full" style={{ background: sub.gradient }} />
                                               )}
@@ -1304,7 +1332,7 @@ export function AdminPage() {
                                         </div>
                                       ) : (
                                         <p className="text-[#A7A39B]/50 text-xs text-center py-3" style={{ fontWeight: 400 }}>
-                                          Nenhuma subfoto adicionada
+                                          Nenhuma submidia adicionada
                                         </p>
                                       )}
                                     </div>
@@ -1361,9 +1389,9 @@ export function AdminPage() {
                 </div>
 
                 {/* Hidden inputs */}
-                <input ref={editMainFileRef} type="file" accept="image/*" className="hidden"
+                <input ref={editMainFileRef} type="file" accept={MEDIA_ACCEPT} className="hidden"
                   onChange={(e) => { const f = e.target.files?.[0]; if (f) handleEditMainFile(f); }} />
-                <input ref={editSubFileRef} type="file" accept="image/*" className="hidden"
+                <input ref={editSubFileRef} type="file" accept={MEDIA_ACCEPT} className="hidden"
                   onChange={handleEditSubFileChange} />
 
                 {/* Form */}
@@ -1383,7 +1411,7 @@ export function AdminPage() {
                       >
                         {editMainPreview ? (
                           <>
-                            <img src={editMainPreview} alt="Foto principal" className="absolute inset-0 w-full h-full object-cover" />
+                            <MediaPreview src={editMainPreview} alt="Foto principal" className="absolute inset-0 w-full h-full object-cover" />
                             <div className="absolute inset-0 bg-black/40 flex items-center justify-center opacity-0 hover:opacity-100 transition-opacity duration-300">
                               <div className="flex flex-col items-center gap-2 text-white"><Upload size={20} /><span className="text-sm" style={{ fontWeight: 500 }}>Trocar</span></div>
                             </div>
@@ -1406,10 +1434,10 @@ export function AdminPage() {
                       </div>
 
                       <p className="text-[#A7A39B] text-xs tracking-wide uppercase pt-1" style={{ fontWeight: 500 }}>
-                        Subfotos <span style={{ color: "rgba(167,163,155,0.5)", textTransform: "none", letterSpacing: 0 }}>(até 4)</span>
+                        Submidias <span style={{ color: "rgba(167,163,155,0.5)", textTransform: "none", letterSpacing: 0 }}>(ate {MAX_SUB_MEDIA})</span>
                       </p>
                       <div className="grid grid-cols-4 gap-2">
-                        {[0, 1, 2, 3].map((slot) => {
+                        {Array.from({ length: MAX_SUB_MEDIA }, (_, slot) => {
                           const sub = editSubSlots[slot];
                           return (
                             <div key={slot} className="relative group">
@@ -1419,7 +1447,7 @@ export function AdminPage() {
                                 onClick={() => openEditSubSlot(slot)}
                               >
                                 {sub?.preview ? (
-                                  <img src={sub.preview} alt="" className="w-full h-full object-cover" />
+                                  <MediaPreview src={sub.preview} className="w-full h-full object-cover" />
                                 ) : sub?.gradient ? (
                                   <div className="w-full h-full" style={{ background: sub.gradient }} />
                                 ) : (

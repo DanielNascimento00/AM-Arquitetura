@@ -67,6 +67,10 @@ interface ApiProject {
   subPhotos: { url?: string; preview?: string | null }[];
 }
 
+function isVideoSrc(src: unknown): src is string {
+  return typeof src === "string" && (src.startsWith("data:video/") || src.toLowerCase().includes(".mp4"));
+}
+
 const defaultProjects: Project[] = [
   {
     id: 1,
@@ -169,7 +173,15 @@ function FullscreenModal({ src, alt, onClose }: { src: string; alt: string; onCl
         <X className="w-5 h-5 text-[#F2F0EA]" />
       </button>
       <div className="w-full h-full p-4 flex items-center justify-center" onClick={(e) => e.stopPropagation()}>
-        {isImported ? (
+        {isVideoSrc(src) ? (
+          <video
+            src={src}
+            className="max-w-full max-h-full object-contain"
+            controls
+            autoPlay
+            playsInline
+          />
+        ) : isImported ? (
           <ImageWithFallback src={src} alt={alt} className="max-w-full max-h-full object-contain" />
         ) : (
           <img src={src} alt={alt} className="max-w-full max-h-full object-contain" />
@@ -192,7 +204,17 @@ function ProjectCard({ project, onClick, onExpand, className = "", style }: { pr
       className={`relative overflow-hidden rounded-[16px] cursor-pointer bg-[#0C1111] ${className}`}
       style={style}
     >
-      {isImported ? (
+      {isVideoSrc(firstImage) ? (
+        <video
+          src={firstImage}
+          className="w-full h-full object-cover transition-all duration-500 ease-out"
+          style={{ transform: isHovered ? "scale(1.05)" : "scale(1)" }}
+          muted
+          loop
+          playsInline
+          preload="metadata"
+        />
+      ) : isImported ? (
         <ImageWithFallback
           src={firstImage as string}
           alt={project.name}
@@ -331,7 +353,15 @@ function LightboxModal({ project, onClose, onExpand }: { project: Project; onClo
           transition={{ duration: 0.25 }}
           className="w-full h-full"
         >
-          {isImported ? (
+          {isVideoSrc(currentImg) ? (
+            <video
+              src={currentImg}
+              className="w-full h-full object-cover md:object-contain"
+              controls
+              autoPlay
+              playsInline
+            />
+          ) : isImported ? (
             <ImageWithFallback
               src={currentImg as string}
               alt={`${project.name} - Imagem ${currentImageIndex + 1}`}
@@ -368,7 +398,7 @@ function LightboxModal({ project, onClose, onExpand }: { project: Project; onClo
         <button
           onClick={() => onExpand(currentImg as string)}
           className="absolute bottom-4 right-4 w-10 h-10 rounded-full bg-black/60 hover:bg-[#B59F78] backdrop-blur-sm flex items-center justify-center transition-colors duration-300 border border-white/15 hover:border-[#B59F78]"
-          aria-label="Ver imagem em tamanho real"
+          aria-label="Ver midia em tamanho real"
         >
           <Maximize2 className="w-4 h-4 text-[#F2F0EA]" />
         </button>
@@ -392,7 +422,15 @@ function LightboxModal({ project, onClose, onExpand }: { project: Project; onClo
                 }`}
                 style={{ width: "72px", height: "52px" }}
               >
-                {isThumb ? (
+                {isVideoSrc(img) ? (
+                  <video
+                    src={img}
+                    className="w-full h-full object-cover"
+                    muted
+                    playsInline
+                    preload="metadata"
+                  />
+                ) : isThumb ? (
                   <ImageWithFallback src={img as string} alt={`Miniatura ${idx + 1}`} className="w-full h-full object-cover" />
                 ) : (
                   <img src={img as string} alt={`Miniatura ${idx + 1}`} className="w-full h-full object-cover" />
@@ -415,7 +453,16 @@ function MobileProjectCard({ project, onClick }: { project: Project; onClick: ()
       onClick={onClick}
       className="relative w-full h-full overflow-hidden rounded-[16px] cursor-pointer bg-[#0C1111]"
     >
-      {isImported ? (
+      {isVideoSrc(firstImage) ? (
+        <video
+          src={firstImage}
+          className="w-full h-full object-cover"
+          muted
+          loop
+          playsInline
+          preload="metadata"
+        />
+      ) : isImported ? (
         <ImageWithFallback
           src={firstImage as string}
           alt={project.name}
