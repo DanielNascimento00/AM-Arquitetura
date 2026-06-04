@@ -67,6 +67,16 @@ function reply(res: ServerResponse, status: number, body: unknown) {
   res.end(JSON.stringify(body));
 }
 
+function readHeader(req: IncomingMessage, name: string): string {
+  const value = req.headers[name.toLowerCase()];
+  return Array.isArray(value) ? value[0] ?? "" : value ?? "";
+}
+
+function validateAdminToken(req: IncomingMessage): boolean {
+  const configuredToken = process.env.LEADS_ADMIN_TOKEN || process.env.BLOB_READ_WRITE_TOKEN;
+  return Boolean(configuredToken) && readHeader(req, "x-admin-token") === configuredToken;
+}
+
 async function readJson(req: IncomingMessage): Promise<Record<string, unknown> | null> {
   return new Promise((resolve) => {
     let raw = "";
@@ -150,6 +160,18 @@ export default async function handler(req: IncomingMessage, res: ServerResponse)
       }
 
       reply(res, 200, { data: updated });
+      return;
+    }
+
+    if (req.method === "DELETE") {
+      if (!validateAdminToken(req)) {
+        reply(res, 401, { error: "unauthorized" });
+        return;
+      }
+
+      const before = await r.llen(LEADS_KEY);
+      await r.del(LEADS_KEY);
+      reply(res, 200, { data: { before, after: 0 } });
       return;
     }
 
