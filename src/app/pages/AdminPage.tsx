@@ -89,24 +89,6 @@ const categoryConfig: Record<PhotoCategory, { label: string; color: string; bg: 
   marcenaria:  { label: "Marcenaria",  color: "#60a5fa", bg: "rgba(96,165,250,0.15)" },
 };
 
-const SUB_GRADIENTS = [
-  ["linear-gradient(135deg,#2a2a3e,#1f4470)", "linear-gradient(135deg,#1a2a3e,#2f5480)", "linear-gradient(135deg,#0a1a3e,#1f3470)", "linear-gradient(135deg,#1a3a4e,#2f6470)"],
-  ["linear-gradient(135deg,#1d2b3a,#2d4a5e)", "linear-gradient(135deg,#0d2030,#1d3f55)", "linear-gradient(135deg,#2d3b4a,#3d5a6e)", "linear-gradient(135deg,#0d1b2a,#1d3a4e)"],
-  ["linear-gradient(135deg,#2c1a0a,#5b3a2a)", "linear-gradient(135deg,#1c0a00,#4b2a1a)", "linear-gradient(135deg,#3c2a1a,#6b4a3a)", "linear-gradient(135deg,#0c0a00,#3b1a0a)"],
-  ["linear-gradient(135deg,#1a2838,#2d4a6e)", "linear-gradient(135deg,#0a1828,#1d3a5e)", "linear-gradient(135deg,#2a3848,#3d5a7e)", "linear-gradient(135deg,#0a2038,#1d4a6e)"],
-  ["linear-gradient(135deg,#1d2a1d,#3a5a3a)", "linear-gradient(135deg,#0d1a0d,#2a3a2a)", "linear-gradient(135deg,#2d3a2d,#4a6a4a)", "linear-gradient(135deg,#0d2a0d,#2a4a2a)"],
-  ["linear-gradient(135deg,#2a1a08,#5a3a1a)", "linear-gradient(135deg,#1a0a00,#3a1a08)", "linear-gradient(135deg,#3a2a18,#6a4a2a)", "linear-gradient(135deg,#0a0a00,#2a1a08)"],
-];
-
-const mockProjects: Project[] = [
-  { id: 1, title: "Sala de Estar Contemporânea", description: "Projeto com iluminação cênica e integração de ambientes", category: "arquitetura", order: 1, featured: true,  mainPhoto: { preview: null, gradient: "linear-gradient(135deg,#1a1a2e,#0f3460)" }, subPhotos: SUB_GRADIENTS[0].map((g, i) => ({ id: 10 + i, preview: null, gradient: g })) },
-  { id: 2, title: "Cozinha Integrada",           description: "Americana com ilha central e acabamento premium",         category: "arquitetura", order: 2, featured: false, mainPhoto: { preview: null, gradient: "linear-gradient(135deg,#0d1b2a,#415a77)" }, subPhotos: SUB_GRADIENTS[1].slice(0,3).map((g, i) => ({ id: 20 + i, preview: null, gradient: g })) },
-  { id: 3, title: "Suíte Master",                description: "Closet integrado com banheira e iluminação indireta",     category: "arquitetura", order: 3, featured: false, mainPhoto: { preview: null, gradient: "linear-gradient(135deg,#1c0a00,#6b3a2a)" }, subPhotos: SUB_GRADIENTS[2].map((g, i) => ({ id: 30 + i, preview: null, gradient: g })) },
-  { id: 4, title: "Estante Planejada",           description: "Marcenaria sob medida em freijó com nichos abertos",      category: "marcenaria",  order: 4, featured: false, mainPhoto: { preview: null, gradient: "linear-gradient(135deg,#0a1628,#2d4a6e)" }, subPhotos: SUB_GRADIENTS[3].slice(0,2).map((g, i) => ({ id: 40 + i, preview: null, gradient: g })) },
-  { id: 5, title: "Closet Autoral",              description: "Closet feminino em laca off-white com espelho bisotê",    category: "marcenaria",  order: 5, featured: true,  mainPhoto: { preview: null, gradient: "linear-gradient(135deg,#0d1a0d,#2d5a2d)" }, subPhotos: SUB_GRADIENTS[4].map((g, i) => ({ id: 50 + i, preview: null, gradient: g })) },
-  { id: 6, title: "Painel TV com Lareira",       description: "Painel em MDF amadeirado com lareira embutida",           category: "marcenaria",  order: 6, featured: false, mainPhoto: { preview: null, gradient: "linear-gradient(135deg,#1a1008,#5a3a1a)" }, subPhotos: SUB_GRADIENTS[5].slice(0,3).map((g, i) => ({ id: 60 + i, preview: null, gradient: g })) },
-];
-
 /* ─── Helpers ────────────────────────────────────────────── */
 
 const statusConfig: Record<LeadStatus, { label: string; color: string; bg: string }> = {
@@ -189,7 +171,7 @@ type Tab = "dashboard" | "gallery";
 export function AdminPage() {
   const [activeTab, setActiveTab] = useState<Tab>("dashboard");
   const [sidebarOpen, setSidebarOpen] = useState(false);
-  const [projects, setProjects] = useState<Project[]>(mockProjects);
+  const [projects, setProjects] = useState<Project[]>([]);
   const [leads, setLeads] = useState<Lead[]>([]);
   const [leadsLoading, setLeadsLoading] = useState(true);
   const [leadsError, setLeadsError] = useState(false);
@@ -204,7 +186,7 @@ export function AdminPage() {
   const [subFiles, setSubFiles] = useState<(File | null)[]>([null, null, null, null]);
   const [subPreviews, setSubPreviews] = useState<(string | null)[]>([null, null, null, null]);
   const [activeSubSlot, setActiveSubSlot] = useState<number | null>(null);
-  const [photoForm, setPhotoForm] = useState({ title: "", description: "", category: "arquitetura" as PhotoCategory, order: mockProjects.length + 1, featured: false });
+  const [photoForm, setPhotoForm] = useState({ title: "", description: "", category: "arquitetura" as PhotoCategory, order: 1, featured: false });
   const mainFileRef = useRef<HTMLInputElement>(null);
   const subFileRef = useRef<HTMLInputElement>(null);
 
@@ -316,7 +298,7 @@ export function AdminPage() {
         const result = await response.json() as { data?: ApiProject[] };
         if (active) {
           const nextProjects = Array.isArray(result.data) ? result.data.map(normalizeProject) : [];
-          setProjects(nextProjects.length > 0 ? nextProjects : mockProjects);
+          setProjects(nextProjects);
           setPhotoForm((prev) => ({ ...prev, order: nextProjects.length + 1 }));
           setProjectsError(false);
         }
@@ -1178,6 +1160,16 @@ export function AdminPage() {
                   </div>
 
                   <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+                    {!projectsLoading && projects.filter((p) => galleryFilter === "todos" || p.category === galleryFilter).length === 0 && (
+                      <div
+                        className="sm:col-span-2 lg:col-span-3 py-12 text-center rounded-[16px] border"
+                        style={{ background: "#0C1111", borderColor: "rgba(255,255,255,0.05)" }}
+                      >
+                        <p className="text-[#A7A39B] text-sm" style={{ fontWeight: 400 }}>
+                          Nenhum projeto cadastrado.
+                        </p>
+                      </div>
+                    )}
                     {projects
                       .filter((p) => galleryFilter === "todos" || p.category === galleryFilter)
                       .map((project, i) => {
