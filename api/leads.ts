@@ -1,6 +1,32 @@
 import Redis from "ioredis";
 import { createHmac, timingSafeEqual } from "crypto";
+import { readFileSync } from "fs";
+import { join, dirname } from "path";
+import { fileURLToPath } from "url";
 import type { IncomingMessage, ServerResponse } from "http";
+import { Resend } from "resend";
+
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = dirname(__filename);
+
+function buildEmailHtml(lead: { name: string; email: string; phone: string; message: string; date: string }): string {
+  const template = readFileSync(join(__dirname, "../emails/new-lead.html"), "utf8");
+  const adminUrl = process.env.ADMIN_URL ?? "https://ammarquitetura.vercel.app/admin";
+  const year = new Date().getFullYear().toString();
+  return template
+    .replace(/\{\{lead\.name\}\}/g, escapeHtml(lead.name))
+    .replace(/\{\{lead\.email\}\}/g, escapeHtml(lead.email))
+    .replace(/mailto:\{\{lead\.email\}\}/g, `mailto:${escapeHtml(lead.email)}`)
+    .replace(/\{\{lead\.phone\}\}/g, escapeHtml(lead.phone || "—"))
+    .replace(/\{\{lead\.message\}\}/g, escapeHtml(lead.message).replace(/\n/g, "<br>"))
+    .replace(/\{\{lead\.date\}\}/g, escapeHtml(lead.date))
+    .replace(/\{\{adminUrl\}\}/g, adminUrl)
+    .replace(/\{\{year\}\}/g, year);
+}
+
+function escapeHtml(str: string): string {
+  return str.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;");
+}
 
 export const config = { runtime: "nodejs" };
 
@@ -169,6 +195,18 @@ export default async function handler(req: IncomingMessage, res: ServerResponse)
 
       await r.lpush(LEADS_KEY, JSON.stringify(lead));
       await r.ltrim(LEADS_KEY, 0, 99);
+
+      const resendKey = process.env.RESEND_API_KEY;
+      if (resendKey) {
+        const resend = new Resend(resendKey);
+        await resend.emails.send({
+          from: process.env.RESEND_FROM ?? "AM Arquitetura <onboarding@resend.dev>",
+          to: "danielsnascimento00@gmail.com",
+          subject: `Novo contato: ${lead.name}`,
+          html: buildEmailHtml(lead),
+        }).catch(() => {});
+      }
+
       reply(res, 201, { data: lead });
       return;
     }

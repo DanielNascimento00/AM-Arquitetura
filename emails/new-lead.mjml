@@ -1,0 +1,251 @@
+<mjml>
+  <mj-head>
+    <mj-title>Novo contato — A.M Arquitetura</mj-title>
+    <mj-font name="Inter" href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600&display=swap" />
+    <mj-attributes>
+      <mj-all font-family="Inter, -apple-system, BlinkMacSystemFont, Arial, sans-serif" />
+      <mj-text color="#A7A39B" font-size="15px" line-height="1.6" font-weight="400" />
+    </mj-attributes>
+    <mj-style>
+      .label {
+        font-size: 11px;
+        font-weight: 500;
+        letter-spacing: 0.12em;
+        text-transform: uppercase;
+        color: #B59F78;
+      }
+      .field-value {
+        color: #F2F0EA;
+        font-size: 16px;
+        font-weight: 400;
+      }
+      .divider-gold {
+        border: none;
+        border-top: 1px solid #B59F78;
+        width: 40px;
+        margin: 0;
+      }
+    </mj-style>
+  </mj-head>
+
+  <mj-body background-color="#050808">
+
+    <!-- Top accent line -->
+    <mj-section background-color="#050808" padding="0">
+      <mj-column>
+        <mj-divider border-color="#B59F78" border-width="2px" padding="0" />
+      </mj-column>
+    </mj-section>
+
+    <!-- Header -->
+    <mj-section background-color="#050808" padding="40px 40px 32px">
+      <mj-column>
+        <!-- Brand mark -->
+        <mj-text
+          color="#F2F0EA"
+          font-size="32px"
+          font-weight="300"
+          letter-spacing="-0.04em"
+          line-height="1"
+          padding-bottom="4px"
+        >
+          A.M
+        </mj-text>
+        <mj-text
+          color="#A7A39B"
+          font-size="11px"
+          font-weight="500"
+          letter-spacing="0.18em"
+          padding-top="0"
+        >
+          ARQUITETURA E MARCENARIA
+        </mj-text>
+      </mj-column>
+    </mj-section>
+
+    <!-- Eyebrow + Headline -->
+    <mj-section background-color="#050808" padding="0 40px 40px">
+      <mj-column>
+        <mj-text
+          css-class="label"
+          padding-bottom="16px"
+        >
+          Novo Contato Recebido
+        </mj-text>
+
+        <mj-text
+          color="#F2F0EA"
+          font-size="30px"
+          font-weight="300"
+          letter-spacing="-0.02em"
+          line-height="1.2"
+          padding-bottom="12px"
+        >
+          Alguém quer <span style="color:#B59F78; font-weight:400;">iniciar um projeto</span>
+        </mj-text>
+
+        <mj-text
+          color="#A7A39B"
+          font-size="15px"
+          padding-bottom="0"
+        >
+          Os dados do contato estão abaixo. Responda o quanto antes para aumentar a chance de conversão.
+        </mj-text>
+      </mj-column>
+    </mj-section>
+
+    <!-- Divider -->
+    <mj-section background-color="#050808" padding="0 40px">
+      <mj-column>
+        <mj-divider border-color="#B59F78" border-width="1px" width="40px" align="left" padding="0 0 40px 0" />
+      </mj-column>
+    </mj-section>
+
+    <!-- Lead card -->
+    <mj-section background-color="#0A0F0F" border-radius="12px" padding="0 24px" css-class="lead-card">
+      <mj-column border="1px solid rgba(255,255,255,0.06)" border-radius="12px" background-color="#0C1111" padding="32px">
+
+        <!-- Nome -->
+        <mj-text css-class="label" padding-bottom="6px">
+          Nome
+        </mj-text>
+        <mj-text
+          color="#F2F0EA"
+          font-size="18px"
+          font-weight="500"
+          padding-top="0"
+          padding-bottom="28px"
+        >
+          {{lead.name}}
+        </mj-text>
+
+        <!-- Email -->
+        <mj-text css-class="label" padding-bottom="6px">
+          Email
+        </mj-text>
+        <mj-text
+          color="#B59F78"
+          font-size="15px"
+          font-weight="400"
+          padding-top="0"
+          padding-bottom="28px"
+        >
+          <a href="mailto:{{lead.email}}" style="color:#B59F78; text-decoration:none;">{{lead.email}}</a>
+        </mj-text>
+
+        <!-- Telefone -->
+        <mj-text css-class="label" padding-bottom="6px">
+          Telefone
+        </mj-text>
+        <mj-text
+          color="#F2F0EA"
+          font-size="15px"
+          font-weight="400"
+          padding-top="0"
+          padding-bottom="28px"
+        >
+          {{lead.phone}}
+        </mj-text>
+
+        <!-- Separador -->
+        <mj-divider border-color="rgba(255,255,255,0.06)" border-width="1px" padding="0 0 28px 0" />
+
+        <!-- Mensagem -->
+        <mj-text css-class="label" padding-bottom="10px">
+          Mensagem
+        </mj-text>
+        <mj-text
+          color="#F2F0EA"
+          font-size="15px"
+          font-weight="400"
+          line-height="1.7"
+          padding-top="0"
+          padding-bottom="0"
+        >
+          {{lead.message}}
+        </mj-text>
+
+      </mj-column>
+    </mj-section>
+
+    <!-- Meta info -->
+    <mj-section background-color="#050808" padding="20px 40px 8px">
+      <mj-column>
+        <mj-text
+          color="#A7A39B"
+          font-size="13px"
+          font-weight="400"
+          letter-spacing="0.02em"
+        >
+          Recebido em <span style="color:#F2F0EA;">{{lead.date}}</span>
+        </mj-text>
+      </mj-column>
+    </mj-section>
+
+    <!-- CTA -->
+    <mj-section background-color="#050808" padding="32px 40px 48px">
+      <mj-column>
+        <mj-button
+          background-color="#B59F78"
+          color="#050808"
+          font-size="14px"
+          font-weight="500"
+          letter-spacing="0.05em"
+          border-radius="100px"
+          padding="16px 36px"
+          inner-padding="0"
+          href="{{adminUrl}}"
+        >
+          Ver no Painel Admin
+        </mj-button>
+      </mj-column>
+    </mj-section>
+
+    <!-- Divider before footer -->
+    <mj-section background-color="#050808" padding="0 40px">
+      <mj-column>
+        <mj-divider border-color="rgba(255,255,255,0.05)" border-width="1px" padding="0" />
+      </mj-column>
+    </mj-section>
+
+    <!-- Footer -->
+    <mj-section background-color="#050808" padding="32px 40px 16px">
+      <mj-column>
+        <mj-text
+          color="#A7A39B"
+          font-size="13px"
+          font-weight="400"
+          align="center"
+          padding-bottom="8px"
+        >
+          <a href="https://www.instagram.com/arqalinemartins" style="color:#B59F78; text-decoration:none;">@arqalinemartins</a>
+          &nbsp;&nbsp;·&nbsp;&nbsp;
+          <a href="mailto:amarqemarcenaria@gmail.com" style="color:#A7A39B; text-decoration:none;">amarqemarcenaria@gmail.com</a>
+          &nbsp;&nbsp;·&nbsp;&nbsp;
+          São Paulo, Brasil
+        </mj-text>
+      </mj-column>
+    </mj-section>
+
+    <mj-section background-color="#050808" padding="0 40px 40px">
+      <mj-column>
+        <mj-text
+          color="rgba(167,163,155,0.4)"
+          font-size="12px"
+          font-weight="400"
+          align="center"
+        >
+          © {{year}} A.M Arquitetura. Todos os direitos reservados.
+        </mj-text>
+      </mj-column>
+    </mj-section>
+
+    <!-- Bottom accent line -->
+    <mj-section background-color="#050808" padding="0">
+      <mj-column>
+        <mj-divider border-color="#B59F78" border-width="2px" padding="0" />
+      </mj-column>
+    </mj-section>
+
+  </mj-body>
+</mjml>
