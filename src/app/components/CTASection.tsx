@@ -15,9 +15,9 @@ export function CTASection() {
             boxShadow: '0 20px 60px rgba(0, 0, 0, 0.4)',
           }}
         >
-          <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 lg:gap-16 items-center">
-            {/* Eyebrow + Título — sempre primeiro */}
-            <div className="lg:col-span-5 order-1">
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 lg:gap-16 items-center">
+            {/* Coluna esquerda — todo o conteúdo de texto */}
+            <div className="flex flex-col text-left">
               <motion.div
                 initial={{ opacity: 0, y: 20 }}
                 whileInView={{ opacity: 1, y: 0 }}
@@ -39,11 +39,38 @@ export function CTASection() {
                   Cada ambiente pensado para viver com elegância.
                 </h2>
               </motion.div>
+
+              <motion.div
+                initial={{ opacity: 0, y: 20 }}
+                whileInView={{ opacity: 1, y: 0 }}
+                viewport={{ once: true }}
+                transition={{ duration: 0.6, delay: 0.35, ease: [0.22, 1, 0.36, 1] }}
+              >
+                <p
+                  className="text-[#A7A39B] text-[17px] md:text-[18px] mb-10 leading-relaxed mt-6"
+                  style={{ fontWeight: 400, lineHeight: 1.7 }}
+                >
+                  Projetamos interiores de alto padrão com atenção absoluta à estética, funcionalidade e marcenaria sob medida, criando espaços autorais para apartamentos, salas, cozinhas e suítes.
+                </p>
+                <motion.a
+                  href="#contact"
+                  whileHover={{ scale: 1.02, y: -2 }}
+                  whileTap={{ scale: 0.98 }}
+                  className="inline-block px-10 py-4 bg-[#B59F78] text-[#050808] rounded-full transition-all duration-300 hover:bg-[#C8B28A]"
+                  style={{
+                    fontSize: '16px',
+                    fontWeight: 500,
+                    letterSpacing: '0.02em',
+                    boxShadow: '0 10px 30px rgba(181, 159, 120, 0.3)',
+                  }}
+                >
+                  Agendar Atendimento
+                </motion.a>
+              </motion.div>
             </div>
 
-            {/* Vídeo — mobile: order-2 (logo após o título), desktop: coluna direita */}
+            {/* Coluna direita — vídeo */}
             <motion.div
-              className="lg:col-span-7 order-2 lg:order-3 lg:row-span-2"
               initial={{ opacity: 0, x: 30 }}
               whileInView={{ opacity: 1, x: 0 }}
               viewport={{ once: true }}
@@ -77,7 +104,6 @@ export function CTASection() {
                     Seu navegador não suporta vídeos HTML5.
                   </video>
 
-                  {/* Glow Effect on Hover */}
                   <div
                     className="absolute inset-0 opacity-0 group-hover:opacity-100 transition-opacity duration-500 pointer-events-none"
                     style={{
@@ -87,37 +113,6 @@ export function CTASection() {
                 </motion.div>
               </div>
             </motion.div>
-
-            {/* Descrição + Botão — mobile: order-3, desktop: abaixo do título */}
-            <div className="lg:col-span-5 order-3 lg:order-2">
-              <motion.div
-                initial={{ opacity: 0, y: 20 }}
-                whileInView={{ opacity: 1, y: 0 }}
-                viewport={{ once: true }}
-                transition={{ duration: 0.6, delay: 0.35, ease: [0.22, 1, 0.36, 1] }}
-              >
-                <p
-                  className="text-[#A7A39B] text-[17px] md:text-[18px] mb-10 leading-relaxed mt-6 lg:mt-0"
-                  style={{ fontWeight: 400, lineHeight: 1.7 }}
-                >
-                  Projetamos interiores de alto padrão com atenção absoluta à estética, funcionalidade e marcenaria sob medida, criando espaços autorais para apartamentos, salas, cozinhas e suítes.
-                </p>
-                <motion.a
-                  href="#contact"
-                  whileHover={{ scale: 1.02, y: -2 }}
-                  whileTap={{ scale: 0.98 }}
-                  className="inline-block px-10 py-4 bg-[#B59F78] text-[#050808] rounded-full transition-all duration-300 hover:bg-[#C8B28A]"
-                  style={{
-                    fontSize: '16px',
-                    fontWeight: 500,
-                    letterSpacing: '0.02em',
-                    boxShadow: '0 10px 30px rgba(181, 159, 120, 0.3)',
-                  }}
-                >
-                  Agendar Atendimento
-                </motion.a>
-              </motion.div>
-            </div>
           </div>
         </motion.div>
       </div>
