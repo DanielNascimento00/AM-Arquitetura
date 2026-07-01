@@ -1,7 +1,7 @@
 import { useState, useEffect } from "react";
 import { motion, AnimatePresence } from "motion/react";
 import { ImageWithFallback } from "@/app/components/figma/ImageWithFallback";
-import logoImg from "@/imports/image-2.png";
+import logoImg from "@/imports/image-4.png";
 
 export function LiquidGlassNavbar() {
   const [isScrolled, setIsScrolled] = useState(false);

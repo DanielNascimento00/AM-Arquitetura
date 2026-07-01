@@ -1,7 +1,17 @@
 import { motion } from "motion/react";
-import heroVideo from "../../imports/anime_o_video_dessa_casa_de_lu__online-video-cutter.com_-1.mp4";
+import { useEffect, useRef } from "react";
+import heroVideo from "../../imports/Video_Hero-1.mp4";
 
 export function HeroSection() {
+  const videoRef = useRef<HTMLVideoElement>(null);
+
+  useEffect(() => {
+    if (videoRef.current) {
+      videoRef.current.muted = true;
+      videoRef.current.volume = 0;
+    }
+  }, []);
+
   return (
     <section id="home" className="relative h-screen w-full overflow-hidden bg-[#050808]">
       {/* Background Typography - "A.M" */}
@@ -25,6 +35,7 @@ export function HeroSection() {
         className="absolute inset-0 z-10"
       >
         <video
+          ref={videoRef}
           autoPlay
           loop
           muted
