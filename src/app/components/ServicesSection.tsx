@@ -14,7 +14,7 @@ const services = [
   },
   {
     icon: FileCheck,
-    title: "Emissão de ART",
+    title: "Emissão de RRT",
     description: "Emissão de Anotação de Responsabilidade Técnica para projetos arquitetônicos com respaldo legal e segurança.",
   },
   {

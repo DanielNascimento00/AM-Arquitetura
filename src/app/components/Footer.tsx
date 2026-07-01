@@ -1,7 +1,7 @@
 import { motion } from "motion/react";
 import { Instagram } from "lucide-react";
 import { ImageWithFallback } from "@/app/components/figma/ImageWithFallback";
-import logoImg from "@/imports/image-2.png";
+import logoImg from "@/imports/image-4.png";
 
 export function Footer() {
   const currentYear = new Date().getFullYear();
