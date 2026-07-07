@@ -13,7 +13,7 @@ import {
 } from "recharts";
 import { Link, useNavigate } from "react-router";
 import { ImageWithFallback } from "@/app/components/figma/ImageWithFallback";
-import logoImg from "@/imports/image-2.png";
+import logoImg from "@/imports/image-4.png";
 
 const MAX_SUB_MEDIA = 12;
 const MEDIA_ACCEPT = "image/*,video/mp4";
