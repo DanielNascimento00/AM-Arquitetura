@@ -20,6 +20,7 @@ export function LiquidGlassNavbar() {
     { name: "Início", href: "#home" },
     { name: "Portfólio", href: "#portfolio" },
     { name: "Serviços", href: "#services" },
+    { name: "Quem Somos", href: "#quem-somos" },
     { name: "Sobre", href: "#about" },
     { name: "Contato", href: "#contact" },
   ];

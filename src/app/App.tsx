@@ -4,6 +4,8 @@ import { Analytics } from "@vercel/analytics/react";
 import { LiquidGlassNavbar } from "./components/LiquidGlassNavbar";
 import { HeroSection } from "./components/HeroSection";
 import { AboutSection } from "./components/AboutSection";
+import { QuemSomosSection } from "./components/QuemSomosSection";
+import { SignatureQuoteSection } from "./components/SignatureQuoteSection";
 import { ServicesSection } from "./components/ServicesSection";
 import { PortfolioGrid } from "./components/PortfolioGrid";
 import { CTASection } from "./components/CTASection";
@@ -42,7 +44,9 @@ function LandingPage() {
       <HeroSection />
       <PortfolioGrid />
       <CTASection />
+      <SignatureQuoteSection />
       <ServicesSection />
+      <QuemSomosSection />
       <AboutSection />
       <ContactSection />
       <Footer />
