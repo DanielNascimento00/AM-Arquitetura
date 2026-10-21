@@ -20,11 +20,17 @@ import { GalleryPage } from "./pages/admin/GalleryPage";
 import { AnalyticsPage } from "./pages/admin/AnalyticsPage";
 import { SettingsPage } from "./pages/admin/SettingsPage";
 import { ProtectedRoute } from "./components/ProtectedRoute";
+import { CookieConsent } from "./components/CookieConsent";
+import { useConsent } from "./consent";
 
 function LandingPage() {
+  const consent = useConsent();
+
+  // Contagem de visitas só após o aceite de cookies de análise
   useEffect(() => {
+    if (consent !== "all") return;
     fetch("/api/track", { method: "POST" }).catch(() => {});
-  }, []);
+  }, [consent]);
 
   useEffect(() => {
     document.querySelectorAll('a[href^="#"]').forEach((anchor) => {
@@ -60,6 +66,8 @@ function LandingPage() {
 }
 
 function App() {
+  const consent = useConsent();
+
   return (
     <BrowserRouter>
       <Routes>
@@ -74,7 +82,8 @@ function App() {
           <Route path="*" element={<Navigate to="/admin/adicionar" replace />} />
         </Route>
       </Routes>
-      <Analytics />
+      {consent === "all" && <Analytics />}
+      <CookieConsent />
     </BrowserRouter>
   );
 }
