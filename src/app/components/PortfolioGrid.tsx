@@ -83,7 +83,7 @@ const defaultProjects: Project[] = [
     id: 2,
     name: "Residencial São Paulo",
     category: "arquitetura",
-    description: "Apartamento sofisticado com marcenaria autoral, adega integrada e ambientes de alto padrão em São Paulo.",
+    description: "Residência de alto padrão com ambientes integrados.",
     images: [spImg1, spImg2, spImg3, spImg4, spImg5, spImg6, spImg7, spImg8, spImg9, spImg10],
   },
   {
@@ -109,17 +109,6 @@ const defaultProjects: Project[] = [
       "https://images.unsplash.com/photo-1628745277866-ff9305ac52cc?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3Nzg4Nzd8MHwxfHNlYXJjaHw1fHxsdXh1cnklMjBtb2Rlcm4lMjBsaXZpbmclMjByb29tJTIwaW50ZXJpb3IlMjBkZXNpZ258ZW58MXx8fHwxNzc2ODc3MTQ3fDA&ixlib=rb-4.1.0&q=80&w=1080",
       "https://images.unsplash.com/photo-1760072513442-9872656c1b07?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3Nzg4Nzd8MHwxfHNlYXJjaHw5fHxsdXh1cnklMjBtb2Rlcm4lMjBsaXZpbmclMjByb29tJTIwaW50ZXJpb3IlMjBkZXNpZ258ZW58MXx8fHwxNzc2ODc3MTQ3fDA&ixlib=rb-4.1.0&q=80&w=1080",
       "https://images.unsplash.com/photo-1776482128172-dd265ad0cb49?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3Nzg4Nzd8MHwxfHNlYXJjaHwxNHx8bHV4dXJ5JTIwbW9kZXJuJTIwbGl2aW5nJTIwcm9vbSUyMGludGVyaW9yJTIwZGVzaWdufGVufDF8fHx8MTc3Njg3NzE0N3ww&ixlib=rb-4.1.0&q=80&w=1080",
-    ],
-  },
-  {
-    id: 5,
-    name: "Closet Atelier",
-    category: "marcenaria",
-    description: "Marcenaria sob medida com organização inteligente e acabamento premium.",
-    images: [
-      "https://images.unsplash.com/photo-1770573322210-204dea84450f?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3Nzg4Nzd8MHwxfHNlYXJjaHw3fHxjdXN0b20lMjB3b29kd29yayUyMGNhcnBlbnRyeSUyMGludGVyaW9yfGVufDF8fHx8MTc3Njg3NjIxMXww&ixlib=rb-4.1.0&q=80&w=1080",
-      "https://images.unsplash.com/photo-1770573318949-bd4f75d1f9bc?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3Nzg4Nzd8MHwxfHNlYXJjaHw2fHxjdXN0b20lMjB3b29kd29yayUyMGNhcnBlbnRyeSUyMGludGVyaW9yfGVufDF8fHx8MTc3Njg3NjIxMXww&ixlib=rb-4.1.0&q=80&w=1080",
-      "https://images.unsplash.com/photo-1682450195449-32ab08ddf7e7?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3Nzg4Nzd8MHwxfHNlYXJjaHw4fHxjdXN0b20lMjB3b29kd29yayUyMGNhcnBlbnRyeSUyMGludGVyaW9yfGVufDF8fHx8MTc3Njg3NjIxMXww&ixlib=rb-4.1.0&q=80&w=1080",
     ],
   },
   {

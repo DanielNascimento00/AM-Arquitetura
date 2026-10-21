@@ -46,7 +46,7 @@ export function Footer() {
           <div className="col-span-2 lg:col-span-4">
             <ImageWithFallback src={logoImg} alt="A.M Arquitetura e Marcenaria" className="h-16 w-auto object-contain mb-6" />
             <p className="text-[#A7A39B] max-w-sm mb-8" style={{ fontSize: "15px", fontWeight: 400, lineHeight: 1.7 }}>
-              Criando ambientes sofisticados através de arquitetura de interiores e marcenaria sob medida para espaços de alto padrão.
+              Mais do que projetar espaços, damos forma a ideias que tornam cada ambiente inesquecível.
             </p>
             <div className="flex items-center gap-3">
               <motion.a

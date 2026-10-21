@@ -64,10 +64,10 @@ export function ContactSection() {
               </span>
             </div>
             <h2 className="text-[42px] md:text-[56px] mb-6 text-[#F2F0EA]" style={{ fontWeight: 300, lineHeight: 1.15, letterSpacing: '-0.02em' }}>
-              Vamos Criar Seu Projeto
+              Vamos transformar seu espaço em algo extraordinário?
             </h2>
             <p className="text-[#A7A39B] text-lg mb-12 leading-relaxed" style={{ fontWeight: 400 }}>
-              Pronto para transformar seu espaço? Entre em contato e vamos criar juntos um ambiente único e sofisticado.
+              Criamos ambientes que unem sofisticação, funcionalidade e personalidade.<br />Seu sonho, nossa inspiração. Seu espaço, sua identidade.
             </p>
 
             {/* Contact Info */}

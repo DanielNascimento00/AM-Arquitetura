@@ -28,7 +28,7 @@ export function AboutSection() {
               Criando Ambientes que Inspiram
             </h2>
             <p className="text-[#A7A39B] text-lg mb-6 leading-relaxed" style={{ fontWeight: 400 }}>
-              Somos especialistas em transformar espaços residenciais de alto padrão através de projetos de interiores sofisticados e marcenaria sob medida.
+              Somos especialistas em transformar espaços residenciais e comerciais, através de projetos sofisticados e marcenaria sob medida.
             </p>
             <p className="text-[#A7A39B] text-lg leading-relaxed" style={{ fontWeight: 400 }}>
               Com mais de 12 anos de experiência, combinamos design contemporâneo com funcionalidade, criando ambientes únicos que refletem a personalidade e o estilo de vida de cada cliente.

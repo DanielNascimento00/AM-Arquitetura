@@ -1,6 +1,6 @@
 import { motion, useReducedMotion } from "motion/react";
 
-const PHRASE = "Transformamos sonhos em espaços, ideias em realidade e ambientes em cenários para novas histórias.";
+const PHRASE = "Transformamos idéias em cenários para novas histórias incríveis.";
 const words = PHRASE.split(" ");
 
 const ease = [0.22, 1, 0.36, 1] as const;

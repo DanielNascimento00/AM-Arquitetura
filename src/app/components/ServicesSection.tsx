@@ -4,13 +4,13 @@ import { Building2, Home, Pencil, FileCheck } from "lucide-react";
 const services = [
   {
     icon: Home,
-    title: "Arquitetura de Interiores",
-    description: "Projetos completos de interiores para apartamentos de alto padrão, integrando ambientes com sofisticação.",
+    title: "Arquitetura",
+    description: "Projetos completos integrando ambientes com sofisticação",
   },
   {
     icon: Pencil,
     title: "Marcenaria Sob Medida",
-    description: "Móveis planejados e marcenaria autoral com design exclusivo e acabamento premium.",
+    description: "Móveis planejados e marcenaria autoral com design exclusivo",
   },
   {
     icon: FileCheck,

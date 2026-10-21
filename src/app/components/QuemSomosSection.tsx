@@ -70,10 +70,10 @@ export function QuemSomosSection() {
               className="absolute -left-2 md:-left-8 bottom-10 px-6 py-4 rounded-2xl backdrop-blur-xl bg-white/[0.06] border border-white/10"
             >
               <div className="text-[#B59F78] text-[10px] tracking-[0.2em] uppercase" style={{ fontWeight: 500 }}>
-                Arquitetura de Interiores
+                Arquiteta
               </div>
               <div className="text-[#F2F0EA] text-lg mt-1" style={{ fontWeight: 400 }}>
-                Aline · A.M
+                Aline Martins
               </div>
             </motion.div>
           </motion.div>

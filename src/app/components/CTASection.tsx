@@ -86,7 +86,7 @@ export function CTASection() {
                 className="text-[#A7A39B] mb-10"
                 style={{ fontSize: "17px", fontWeight: 400, lineHeight: 1.7 }}
               >
-                Projetamos interiores de alto padrão com atenção absoluta à estética, funcionalidade e marcenaria sob medida, criando espaços autorais para apartamentos, salas, cozinhas e suítes.
+                Projetamos espaços ergonômicos e estéticos, trazendo funcionalidade aos elementos decorativos.
               </p>
 
               <motion.a
@@ -157,7 +157,7 @@ export function CTASection() {
                 className="text-[#A7A39B] mb-8"
                 style={{ fontSize: "16px", fontWeight: 400, lineHeight: 1.7 }}
               >
-                Projetamos interiores de alto padrão com atenção absoluta à estética, funcionalidade e marcenaria sob medida, criando espaços autorais para apartamentos, salas, cozinhas e suítes.
+                Projetamos espaços ergonômicos e estéticos, trazendo funcionalidade aos elementos decorativos.
               </p>
               <motion.a
                 href="#contact"

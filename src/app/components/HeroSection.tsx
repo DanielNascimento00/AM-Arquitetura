@@ -82,7 +82,7 @@ export function HeroSection() {
 
             {/* Texto de Apoio */}
             <p className="text-lg md:text-xl mb-10 text-[#A7A39B] max-w-[580px]" style={{ fontWeight: 400, lineHeight: 1.6 }}>
-              Arquitetura de interiores e marcenaria sob medida para espaços de alto padrão
+              Arquitetura e marcenaria sob medida
             </p>
 
             {/* CTA Button */}
