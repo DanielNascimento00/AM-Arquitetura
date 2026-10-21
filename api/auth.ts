@@ -1,5 +1,5 @@
 import Redis from "ioredis";
-import { createHmac } from "crypto";
+import { createHmac, scryptSync, timingSafeEqual } from "crypto";
 import type { IncomingMessage, ServerResponse } from "http";
 
 export const config = { runtime: "nodejs", api: { bodyParser: false } };
@@ -30,6 +30,28 @@ const getClient = (() => {
 function computeToken(secret: string): string {
   const day = new Date().toISOString().slice(0, 10);
   return createHmac("sha256", secret).update(`admin-session:${day}`).digest("hex");
+}
+
+function verifyHash(password: string, stored: string): boolean {
+  const [salt, hash] = stored.split(":");
+  if (!salt || !hash) return false;
+  const candidate = scryptSync(password, salt, 64);
+  const expected = Buffer.from(hash, "hex");
+  return candidate.length === expected.length && timingSafeEqual(candidate, expected);
+}
+
+// Senha alterada pelo painel (Redis) tem prioridade sobre ADMIN_PASSWORD.
+// Retorna null se houver senha armazenada mas o Redis estiver indisponível.
+async function checkPassword(password: string, envPassword: string): Promise<boolean | null> {
+  const r = getClient();
+  if (!r) return password === envPassword;
+  try {
+    const stored = await r.get("admin:password");
+    if (stored) return verifyHash(password, stored);
+    return password === envPassword;
+  } catch {
+    return null;
+  }
 }
 
 function getClientIp(req: IncomingMessage): string {
@@ -101,7 +123,13 @@ export default async function handler(req: IncomingMessage, res: ServerResponse)
     const email = String(body.email ?? "").trim();
     const password = String(body.password ?? "");
 
-    if (email !== adminEmail || password !== adminPassword) {
+    const passwordOk = await checkPassword(password, adminPassword);
+    if (passwordOk === null) {
+      reply(res, 503, { error: "storage_unavailable" });
+      return;
+    }
+
+    if (email !== adminEmail || !passwordOk) {
       await new Promise((r) => setTimeout(r, 300));
       reply(res, 401, { error: "invalid_credentials" });
       return;

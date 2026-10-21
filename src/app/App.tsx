@@ -1,5 +1,5 @@
 import { useEffect } from "react";
-import { BrowserRouter, Routes, Route } from "react-router";
+import { BrowserRouter, Routes, Route, Navigate } from "react-router";
 import { Analytics } from "@vercel/analytics/react";
 import { LiquidGlassNavbar } from "./components/LiquidGlassNavbar";
 import { HeroSection } from "./components/HeroSection";
@@ -15,6 +15,10 @@ import { WhatsAppButton } from "./components/WhatsAppButton";
 import { CustomCursor } from "./components/CustomCursor";
 import { LoginPage } from "./pages/LoginPage";
 import { AdminPage } from "./pages/AdminPage";
+import { AddProjectPage } from "./pages/admin/AddProjectPage";
+import { GalleryPage } from "./pages/admin/GalleryPage";
+import { AnalyticsPage } from "./pages/admin/AnalyticsPage";
+import { SettingsPage } from "./pages/admin/SettingsPage";
 import { ProtectedRoute } from "./components/ProtectedRoute";
 
 function LandingPage() {
@@ -61,7 +65,14 @@ function App() {
       <Routes>
         <Route path="/" element={<LandingPage />} />
         <Route path="/login" element={<LoginPage />} />
-        <Route path="/admin" element={<ProtectedRoute><AdminPage /></ProtectedRoute>} />
+        <Route path="/admin" element={<ProtectedRoute><AdminPage /></ProtectedRoute>}>
+          <Route index element={<Navigate to="adicionar" replace />} />
+          <Route path="adicionar" element={<AddProjectPage />} />
+          <Route path="galeria" element={<GalleryPage />} />
+          <Route path="analitico" element={<AnalyticsPage />} />
+          <Route path="configuracoes" element={<SettingsPage />} />
+          <Route path="*" element={<Navigate to="/admin/adicionar" replace />} />
+        </Route>
       </Routes>
       <Analytics />
     </BrowserRouter>
