@@ -47,8 +47,6 @@ export interface AdminContext {
   projects: Project[];
   setProjects: React.Dispatch<React.SetStateAction<Project[]>>;
   projectsLoading: boolean;
-  projectsError: boolean;
-  setProjectsError: (value: boolean) => void;
   profile: AdminProfile;
   setProfile: (profile: AdminProfile) => void;
   handleUnauthorized: () => void;
@@ -147,16 +145,17 @@ export async function prepareMedia(file: File): Promise<File> {
 }
 
 /** Traduz a resposta de erro da API de projetos em uma mensagem para o administrador. */
-export async function describeProjectError(response: Response | null): Promise<string> {
-  if (!response) return "Sem conexão com o servidor. Verifique a internet e tente novamente.";
+export async function describeProjectError(response: Response | null, verb = "salvar"): Promise<string> {
+  if (!response) return "Sem conexão com o servidor. Verifique sua internet e tente novamente.";
   if (response.status === 413) return "Os arquivos são grandes demais para um único envio (limite de 4,5 MB). Use imagens menores ou menos submídias.";
+  if (response.status === 429) return "Muitas tentativas seguidas. Aguarde alguns minutos e tente de novo.";
   const body = await response.json().catch(() => ({})) as { error?: string; detail?: string };
   switch (body.error) {
-    case "redis_not_configured": return "Banco de dados não configurado (STORAGE_REDIS_URL).";
-    case "blob_not_configured": return "Armazenamento de mídia não configurado (BLOB_READ_WRITE_TOKEN).";
+    case "redis_not_configured": return "O banco de dados do site ainda não está configurado. Avise o suporte técnico.";
+    case "blob_not_configured": return "O armazenamento de fotos e vídeos ainda não está configurado. Avise o suporte técnico.";
     case "missing_required_fields": return "Preencha o título e envie a foto principal.";
     case "invalid_media_type": return "Formato de arquivo não aceito. Use imagens ou MP4.";
     case "media_too_large": return "Um dos arquivos excede o tamanho máximo.";
-    default: return `Não foi possível salvar o projeto (erro ${response.status}${body.detail ? `: ${body.detail}` : ""}).`;
+    default: return `Não foi possível ${verb} o projeto agora. Tente novamente em instantes.`;
   }
 }

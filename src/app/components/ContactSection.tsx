@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { useToast, friendlyMessage, messageForStatus, UserFacingError } from "@/app/components/Toast";
 import { motion } from "motion/react";
 import { Mail, Phone, MapPin, Send } from "lucide-react";
 
@@ -9,6 +10,7 @@ export function ContactSection() {
     phone: "",
     message: "",
   });
+  const toast = useToast();
   const [submitStatus, setSubmitStatus] = useState<"idle" | "sending" | "success" | "error">("idle");
 
   const [focused, setFocused] = useState({
@@ -30,14 +32,20 @@ export function ContactSection() {
       });
 
       if (!response.ok) {
-        throw new Error("lead_submit_failed");
+        throw new UserFacingError(
+          response.status === 400
+            ? "Confira os dados informados (nome, e-mail e mensagem) e tente de novo."
+            : messageForStatus(response.status, "Não foi possível enviar sua mensagem agora. Tente novamente em instantes."),
+        );
       }
 
       setFormData({ name: "", email: "", phone: "", message: "" });
       setFocused({ name: false, email: false, phone: false, message: false });
       setSubmitStatus("success");
-    } catch {
+      toast.success("Mensagem enviada com sucesso! Em breve entraremos em contato.");
+    } catch (error) {
       setSubmitStatus("error");
+      toast.error(friendlyMessage(error, "Não foi possível enviar sua mensagem agora. Tente novamente em instantes."));
     }
   };
 
@@ -224,16 +232,6 @@ export function ContactSection() {
                 {submitStatus === "sending" ? "Enviando..." : "Enviar Mensagem"}
                 <Send size={20} />
               </motion.button>
-              {submitStatus === "success" && (
-                <p className="text-[#B59F78] text-sm text-center" style={{ fontWeight: 400 }}>
-                  Mensagem enviada com sucesso.
-                </p>
-              )}
-              {submitStatus === "error" && (
-                <p className="text-[#f87171] text-sm text-center" style={{ fontWeight: 400 }}>
-                  Nao foi possivel enviar agora. Tente novamente em instantes.
-                </p>
-              )}
             </form>
           </motion.div>
         </div>

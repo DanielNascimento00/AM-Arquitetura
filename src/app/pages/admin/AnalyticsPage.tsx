@@ -5,6 +5,7 @@ import {
 } from "lucide-react";
 import { useVercelAnalytics } from "@/app/hooks/useVercelAnalytics";
 import { authHeaders } from "@/app/auth";
+import { useToast, friendlyMessage } from "@/app/components/Toast";
 import {
   AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip,
   ResponsiveContainer,
@@ -94,7 +95,7 @@ export function AnalyticsPage() {
   const { handleUnauthorized } = useAdmin();
   const [leads, setLeads] = useState<Lead[]>([]);
   const [leadsLoading, setLeadsLoading] = useState(true);
-  const [leadsError, setLeadsError] = useState(false);
+  const toast = useToast();
 
   useEffect(() => {
     let active = true;
@@ -107,12 +108,11 @@ export function AnalyticsPage() {
         const result = await response.json() as { data?: Lead[] };
         if (active) {
           setLeads(Array.isArray(result.data) ? result.data : []);
-          setLeadsError(false);
         }
       } catch {
         if (active) {
           setLeads([]);
-          setLeadsError(true);
+          toast.error("Não foi possível carregar os contatos recebidos. Atualize a página para tentar de novo.");
         }
       } finally {
         if (active) setLeadsLoading(false);
@@ -137,10 +137,9 @@ export function AnalyticsPage() {
 
       if (response.status === 401) { handleUnauthorized(); return; }
       if (!response.ok) throw new Error("lead_status_update_failed");
-      setLeadsError(false);
-    } catch {
+    } catch (error) {
       setLeads(previousLeads);
-      setLeadsError(true);
+      toast.error(friendlyMessage(error, "Não foi possível atualizar o status do contato. Tente novamente."));
     }
   };
 
@@ -277,11 +276,6 @@ export function AnalyticsPage() {
           {leadsLoading ? "Carregando..." : `${leads.filter((l) => l.status === "novo").length} novos`}
         </span>
       </div>
-      {leadsError && (
-        <div className="px-6 py-3 border-b text-[#f87171] text-xs" style={{ borderColor: "rgba(255,255,255,0.05)", fontWeight: 400 }}>
-          Nao foi possivel carregar os leads salvos. Verifique a configuracao do Redis.
-        </div>
-      )}
 
       {/* Table desktop */}
       <div className="hidden md:block overflow-x-auto">

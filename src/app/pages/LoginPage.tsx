@@ -6,13 +6,20 @@ import { ImageWithFallback } from "@/app/components/figma/ImageWithFallback";
 import logoImg from "@/imports/image-4.png";
 import { login, isAuthenticated } from "@/app/auth";
 
+const loginMessages = {
+  invalid: "E-mail ou senha incorretos.",
+  blocked: "Muitas tentativas seguidas. Aguarde alguns minutos e tente de novo.",
+  unavailable: "O sistema está indisponível no momento. Tente novamente em instantes.",
+  network: "Sem conexão com o servidor. Verifique sua internet e tente novamente.",
+} as const;
+
 export function LoginPage() {
   const navigate = useNavigate();
   const [form, setForm] = useState({ email: "", password: "" });
   const [focused, setFocused] = useState({ email: false, password: false });
   const [showPassword, setShowPassword] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
-  const [error, setError] = useState(false);
+  const [error, setError] = useState<string | null>(null);
 
   if (isAuthenticated()) {
     return <Navigate to="/admin" replace />;
@@ -21,12 +28,12 @@ export function LoginPage() {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setIsLoading(true);
-    setError(false);
-    const ok = await login(form.email, form.password);
-    if (ok) {
+    setError(null);
+    const result = await login(form.email, form.password);
+    if (result === "ok") {
       navigate("/admin", { replace: true });
     } else {
-      setError(true);
+      setError(loginMessages[result]);
       setIsLoading(false);
     }
   };
@@ -210,7 +217,7 @@ export function LoginPage() {
                 >
                   <AlertCircle size={15} style={{ color: "#f87171", flexShrink: 0 }} />
                   <p className="text-sm" style={{ color: "#f87171", fontWeight: 400 }}>
-                    Email ou senha incorretos.
+                    {error}
                   </p>
                 </motion.div>
               )}

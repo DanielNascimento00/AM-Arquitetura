@@ -2,14 +2,16 @@ import { useState, useRef, useCallback, useMemo } from "react";
 import { motion, AnimatePresence } from "motion/react";
 import { Upload, Star, Trash2, Pencil, X, GripVertical, Search } from "lucide-react";
 import { authHeaders } from "@/app/auth";
+import { useToast, friendlyMessage, UserFacingError } from "@/app/components/Toast";
 import {
   MEDIA_ACCEPT, MAX_SUB_MEDIA, emptyFileSlots, emptySubPhotoSlots, readFile,
-  MediaPreview, categoryConfig, prepareMedia, normalizeProject, appendProjectFormData,
+  MediaPreview, categoryConfig, prepareMedia, describeProjectError, normalizeProject, appendProjectFormData,
   useAdmin, type ApiProject, type PhotoCategory, type Project, type SubPhoto,
 } from "./shared";
 
 export function GalleryPage() {
-  const { projects, setProjects, projectsLoading, projectsError, setProjectsError, handleUnauthorized } = useAdmin();
+  const { projects, setProjects, projectsLoading, handleUnauthorized } = useAdmin();
+  const toast = useToast();
   const [projectSaving, setProjectSaving] = useState(false);
   const [galleryFilter, setGalleryFilter] = useState<PhotoCategory | "todos">("todos");
   const [search, setSearch] = useState("");
@@ -49,11 +51,10 @@ export function GalleryPage() {
 
     const response = await fetch("/api/projects", { method: "PATCH", body: formData, headers: authHeaders() });
     if (response.status === 401) { handleUnauthorized(); return undefined; }
-    if (!response.ok) throw new Error("project_update_failed");
+    if (!response.ok) throw new UserFacingError(await describeProjectError(response));
     const result = await response.json() as { data: ApiProject };
     const updated = normalizeProject(result.data);
     setProjects((prev) => prev.map((p) => p.id === updated.id ? updated : p).sort((a, b) => a.order - b.order));
-    setProjectsError(false);
     return updated;
   };
 
@@ -66,9 +67,10 @@ export function GalleryPage() {
 
     try {
       await saveProject(project, { title: project.title, description: project.description, category: project.category, order: project.order, featured: !project.featured }, null, project.subPhotos, emptyFileSlots());
-    } catch {
+      toast.success(project.featured ? "Projeto removido dos destaques." : "Projeto marcado como destaque.");
+    } catch (error) {
       setProjects(previousProjects);
-      setProjectsError(true);
+      toast.error(friendlyMessage(error));
     }
   };
 
@@ -84,11 +86,11 @@ export function GalleryPage() {
         body: JSON.stringify({ id }),
       });
       if (response.status === 401) { handleUnauthorized(); return; }
-      if (!response.ok) throw new Error("project_delete_failed");
-      setProjectsError(false);
-    } catch {
+      if (!response.ok) throw new UserFacingError(await describeProjectError(response, "excluir"));
+      toast.success("Projeto excluído com sucesso.");
+    } catch (error) {
       setProjects(previousProjects);
-      setProjectsError(true);
+      toast.error(friendlyMessage(error));
     }
   };
 
@@ -140,8 +142,9 @@ export function GalleryPage() {
     try {
       await saveProject(editingProject, editForm, editMainFile, editSubSlots, editSubFiles);
       setEditingProject(null);
-    } catch {
-      setProjectsError(true);
+      toast.success("Projeto atualizado com sucesso.");
+    } catch (error) {
+      toast.error(friendlyMessage(error));
     } finally {
       setProjectSaving(false);
     }
@@ -154,11 +157,6 @@ export function GalleryPage() {
       <div>
         {/* Filter + count */}
         <div className="flex flex-wrap items-center justify-between gap-3 mb-4">
-          {projectsError && (
-            <p className="basis-full text-[#f87171] text-xs leading-relaxed" style={{ fontWeight: 400 }}>
-              Nao foi possivel sincronizar a galeria. Verifique STORAGE_REDIS_URL e BLOB_READ_WRITE_TOKEN.
-            </p>
-          )}
           <div className="relative basis-full sm:basis-64 sm:order-last">
                 <Search size={14} className="absolute left-4 top-1/2 -translate-y-1/2 pointer-events-none" style={{ color: "#A7A39B" }} />
                 <input

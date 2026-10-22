@@ -21,6 +21,8 @@ import { AnalyticsPage } from "./pages/admin/AnalyticsPage";
 import { SettingsPage } from "./pages/admin/SettingsPage";
 import { ProtectedRoute } from "./components/ProtectedRoute";
 import { CookieConsent } from "./components/CookieConsent";
+import { ToastProvider } from "./components/Toast";
+import { ErrorBoundary } from "./components/ErrorBoundary";
 import { useConsent } from "./consent";
 
 function LandingPage() {
@@ -70,20 +72,24 @@ function App() {
 
   return (
     <BrowserRouter>
-      <Routes>
-        <Route path="/" element={<LandingPage />} />
-        <Route path="/login" element={<LoginPage />} />
-        <Route path="/admin" element={<ProtectedRoute><AdminPage /></ProtectedRoute>}>
-          <Route index element={<Navigate to="adicionar" replace />} />
-          <Route path="adicionar" element={<AddProjectPage />} />
-          <Route path="galeria" element={<GalleryPage />} />
-          <Route path="analitico" element={<AnalyticsPage />} />
-          <Route path="configuracoes" element={<SettingsPage />} />
-          <Route path="*" element={<Navigate to="/admin/adicionar" replace />} />
-        </Route>
-      </Routes>
-      {consent === "all" && <Analytics />}
-      <CookieConsent />
+      <ErrorBoundary>
+        <ToastProvider>
+          <Routes>
+            <Route path="/" element={<LandingPage />} />
+            <Route path="/login" element={<LoginPage />} />
+            <Route path="/admin" element={<ProtectedRoute><AdminPage /></ProtectedRoute>}>
+              <Route index element={<Navigate to="adicionar" replace />} />
+              <Route path="adicionar" element={<AddProjectPage />} />
+              <Route path="galeria" element={<GalleryPage />} />
+              <Route path="analitico" element={<AnalyticsPage />} />
+              <Route path="configuracoes" element={<SettingsPage />} />
+              <Route path="*" element={<Navigate to="/admin/adicionar" replace />} />
+            </Route>
+          </Routes>
+          {consent === "all" && <Analytics />}
+          <CookieConsent />
+        </ToastProvider>
+      </ErrorBoundary>
     </BrowserRouter>
   );
 }

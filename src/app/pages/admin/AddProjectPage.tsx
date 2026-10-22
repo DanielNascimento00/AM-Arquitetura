@@ -1,7 +1,7 @@
 import { useState, useRef, useCallback, useEffect } from "react";
 import { motion } from "motion/react";
 import { Upload, X, Star } from "lucide-react";
-import { Link } from "react-router";
+import { useToast } from "@/app/components/Toast";
 import { authHeaders } from "@/app/auth";
 import {
   MEDIA_ACCEPT, MAX_SUB_MEDIA, emptyFileSlots, emptyPreviewSlots, readFile,
@@ -11,8 +11,7 @@ import {
 
 export function AddProjectPage() {
   const { projects, setProjects, projectsLoading, handleUnauthorized } = useAdmin();
-  const [saveError, setSaveError] = useState<string | null>(null);
-  const [saved, setSaved] = useState(false);
+  const toast = useToast();
   const [projectSaving, setProjectSaving] = useState(false);
   const [isDragging, setIsDragging] = useState(false);
   const [mainFile, setMainFile] = useState<File | null>(null);
@@ -77,13 +76,11 @@ export function AddProjectPage() {
 
     const totalSize = [mainFile, ...subFiles].reduce((sum, file) => sum + (file?.size ?? 0), 0);
     if (totalSize > MAX_UPLOAD_BYTES) {
-      setSaved(false);
-      setSaveError(`Os arquivos somam ${(totalSize / 1024 / 1024).toFixed(1).replace(".", ",")} MB e o limite por envio é 4,5 MB. Use imagens menores ou menos submídias.`);
+      toast.error(`Os arquivos somam ${(totalSize / 1024 / 1024).toFixed(1).replace(".", ",")} MB e o limite por envio é 4,5 MB. Use imagens menores ou menos submídias.`);
       return;
     }
 
     setProjectSaving(true);
-    setSaved(false);
     let response: Response | null = null;
     try {
       response = await fetch("/api/projects", { method: "POST", body: formData, headers: authHeaders() });
@@ -92,15 +89,14 @@ export function AddProjectPage() {
       const result = await response.json() as { data: ApiProject };
       const newProject = normalizeProject(result.data);
       setProjects((prev) => [...prev.filter((p) => p.id !== newProject.id), newProject].sort((a, b) => a.order - b.order));
-      setSaveError(null);
-      setSaved(true);
+      toast.success("Projeto adicionado à galeria com sucesso!", { action: { label: "Ver na galeria", to: "/admin/galeria" } });
       setMainFile(null);
       setMainPreview(null);
       setSubFiles(emptyFileSlots());
       setSubPreviews(emptyPreviewSlots());
       setPhotoForm({ title: "", description: "", category: "arquitetura", order: projects.length + 2, featured: false });
     } catch {
-      setSaveError(await describeProjectError(response && !response.ok ? response : null));
+      toast.error(await describeProjectError(response && !response.ok ? response : null));
     } finally {
       setProjectSaving(false);
     }
@@ -127,17 +123,6 @@ export function AddProjectPage() {
         <h2 className="text-[#F2F0EA] text-xl mb-6" style={{ fontWeight: 400 }}>
           Adicionar ao portfólio
         </h2>
-
-        {saved && (
-          <p className="mb-4 text-xs leading-relaxed" style={{ color: "#4ade80", fontWeight: 400 }}>
-            Projeto adicionado ao portfólio. <Link to="/admin/galeria" className="underline" style={{ color: "#B59F78" }}>Ver na Galeria de Projetos</Link>
-          </p>
-        )}
-        {saveError && (
-          <p role="alert" className="mb-4 text-[#f87171] text-xs leading-relaxed" style={{ fontWeight: 400 }}>
-            {saveError}
-          </p>
-        )}
 
         <form onSubmit={handleProjectSubmit}>
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">

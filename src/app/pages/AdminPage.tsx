@@ -5,6 +5,7 @@ import {
 } from "lucide-react";
 import { logout, authHeaders } from "@/app/auth";
 import { Link, NavLink, Outlet, useLocation, useNavigate } from "react-router";
+import { useToast } from "@/app/components/Toast";
 import { ImageWithFallback } from "@/app/components/figma/ImageWithFallback";
 import logoImg from "@/imports/image-4.png";
 import {
@@ -36,7 +37,7 @@ export function AdminPage() {
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [projects, setProjects] = useState<Project[]>([]);
   const [projectsLoading, setProjectsLoading] = useState(true);
-  const [projectsError, setProjectsError] = useState(false);
+  const toast = useToast();
   const [profile, setProfile] = useState<AdminProfile>({ email: "", displayName: "", avatar: "" });
 
   const displayName = profile.displayName.trim() || "Admin";
@@ -52,10 +53,9 @@ export function AdminPage() {
         const result = await response.json() as { data?: ApiProject[] };
         if (active) {
           setProjects(Array.isArray(result.data) ? result.data.map(normalizeProject) : []);
-          setProjectsError(false);
         }
       } catch {
-        if (active) setProjectsError(true);
+        if (active) toast.error("Não foi possível carregar os projetos. Atualize a página para tentar de novo.");
       } finally {
         if (active) setProjectsLoading(false);
       }
@@ -80,7 +80,7 @@ export function AdminPage() {
   }, []);
 
   const context: AdminContext = {
-    projects, setProjects, projectsLoading, projectsError, setProjectsError,
+    projects, setProjects, projectsLoading,
     profile, setProfile, handleUnauthorized,
   };
 

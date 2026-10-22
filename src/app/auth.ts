@@ -1,19 +1,23 @@
 const TOKEN_KEY = "am_admin_token";
 
-export async function login(email: string, password: string): Promise<boolean> {
+export type LoginResult = "ok" | "invalid" | "blocked" | "unavailable" | "network";
+
+export async function login(email: string, password: string): Promise<LoginResult> {
   try {
     const res = await fetch("/api/auth", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ email, password }),
     });
-    if (!res.ok) return false;
+    if (res.status === 429) return "blocked";
+    if (res.status >= 500) return "unavailable";
+    if (!res.ok) return "invalid";
     const data = await res.json() as { token?: string };
-    if (!data.token) return false;
+    if (!data.token) return "unavailable";
     sessionStorage.setItem(TOKEN_KEY, data.token);
-    return true;
+    return "ok";
   } catch {
-    return false;
+    return "network";
   }
 }
 

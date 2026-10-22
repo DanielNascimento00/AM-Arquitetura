@@ -1,13 +1,12 @@
 import { useState, useRef } from "react";
 import { motion } from "motion/react";
-import { Upload, Trash2, Check, AlertCircle } from "lucide-react";
+import { Upload, Trash2 } from "lucide-react";
 import { authHeaders } from "@/app/auth";
+import { useToast } from "@/app/components/Toast";
 import { useAdmin, type AdminProfile } from "./shared";
 
 const AVATAR_SIZE = 256;
 const MIN_PASSWORD = 8;
-
-type Notice = { type: "success" | "error"; text: string } | null;
 
 const inputStyle = {
   background: "#0E1414",
@@ -40,41 +39,19 @@ function resizeAvatar(file: File): Promise<string> {
   });
 }
 
-function NoticeMessage({ notice }: { notice: Notice }) {
-  if (!notice) return null;
-  const ok = notice.type === "success";
-  const Icon = ok ? Check : AlertCircle;
-  return (
-    <div
-      role={ok ? "status" : "alert"}
-      className="flex items-start gap-2 px-4 py-3 rounded-[12px] text-xs leading-relaxed"
-      style={{
-        color: ok ? "#4ade80" : "#f87171",
-        background: ok ? "rgba(74,222,128,0.08)" : "rgba(248,113,113,0.08)",
-        border: `1px solid ${ok ? "rgba(74,222,128,0.2)" : "rgba(248,113,113,0.2)"}`,
-        fontWeight: 400,
-      }}
-    >
-      <Icon size={14} className="flex-shrink-0 mt-px" />
-      <span>{notice.text}</span>
-    </div>
-  );
-}
-
 export function SettingsPage() {
   const { profile, setProfile, handleUnauthorized } = useAdmin();
+  const toast = useToast();
 
   const [displayName, setDisplayName] = useState(profile.displayName);
   const [avatar, setAvatar] = useState(profile.avatar);
   const [profileSaving, setProfileSaving] = useState(false);
-  const [profileNotice, setProfileNotice] = useState<Notice>(null);
   const avatarInputRef = useRef<HTMLInputElement>(null);
 
   const [currentPassword, setCurrentPassword] = useState("");
   const [newPassword, setNewPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
   const [passwordSaving, setPasswordSaving] = useState(false);
-  const [passwordNotice, setPasswordNotice] = useState<Notice>(null);
 
   const initial = (displayName.trim() || "Admin").charAt(0).toUpperCase();
   const profileChanged = displayName.trim() !== profile.displayName || avatar !== profile.avatar;
@@ -84,14 +61,13 @@ export function SettingsPage() {
     e.target.value = "";
     if (!file) return;
     if (!file.type.startsWith("image/")) {
-      setProfileNotice({ type: "error", text: "Selecione um arquivo de imagem (PNG, JPG ou WEBP)." });
+      toast.error("Selecione um arquivo de imagem (PNG, JPG ou WEBP).");
       return;
     }
     try {
       setAvatar(await resizeAvatar(file));
-      setProfileNotice(null);
     } catch {
-      setProfileNotice({ type: "error", text: "Nao foi possivel ler essa imagem. Tente outro arquivo." });
+      toast.error("Não foi possível ler essa imagem. Tente outro arquivo.");
     }
   };
 
@@ -100,7 +76,6 @@ export function SettingsPage() {
     if (profileSaving || !profileChanged) return;
 
     setProfileSaving(true);
-    setProfileNotice(null);
     try {
       const response = await fetch("/api/profile", {
         method: "PATCH",
@@ -113,9 +88,9 @@ export function SettingsPage() {
       setProfile(result.data);
       setDisplayName(result.data.displayName);
       setAvatar(result.data.avatar);
-      setProfileNotice({ type: "success", text: "Perfil atualizado com sucesso." });
+      toast.success("Perfil atualizado com sucesso.");
     } catch {
-      setProfileNotice({ type: "error", text: "Nao foi possivel salvar o perfil. Tente novamente." });
+      toast.error("Não foi possível salvar o perfil. Tente novamente.");
     } finally {
       setProfileSaving(false);
     }
@@ -126,20 +101,19 @@ export function SettingsPage() {
     if (passwordSaving) return;
 
     if (newPassword.length < MIN_PASSWORD) {
-      setPasswordNotice({ type: "error", text: `A nova senha deve ter pelo menos ${MIN_PASSWORD} caracteres.` });
+      toast.error(`A nova senha deve ter pelo menos ${MIN_PASSWORD} caracteres.`);
       return;
     }
     if (newPassword !== confirmPassword) {
-      setPasswordNotice({ type: "error", text: "A confirmação não coincide com a nova senha." });
+      toast.error("A confirmação não coincide com a nova senha.");
       return;
     }
     if (newPassword === currentPassword) {
-      setPasswordNotice({ type: "error", text: "A nova senha deve ser diferente da senha atual." });
+      toast.error("A nova senha deve ser diferente da senha atual.");
       return;
     }
 
     setPasswordSaving(true);
-    setPasswordNotice(null);
     try {
       const response = await fetch("/api/profile", {
         method: "PATCH",
@@ -149,27 +123,27 @@ export function SettingsPage() {
       if (response.status === 401) {
         const body = await response.json().catch(() => ({})) as { error?: string };
         if (body.error === "invalid_current_password") {
-          setPasswordNotice({ type: "error", text: "A senha atual está incorreta." });
+          toast.error("A senha atual está incorreta.");
         } else {
           handleUnauthorized();
         }
         return;
       }
       if (response.status === 429) {
-        setPasswordNotice({ type: "error", text: "Muitas tentativas. Aguarde alguns minutos e tente de novo." });
+        toast.error("Muitas tentativas. Aguarde alguns minutos e tente de novo.");
         return;
       }
       if (response.status === 503) {
-        setPasswordNotice({ type: "error", text: "Armazenamento indisponível. Verifique STORAGE_REDIS_URL." });
+        toast.error("O armazenamento da conta está indisponível no momento. Tente novamente em instantes.");
         return;
       }
       if (!response.ok) throw new Error("password_update_failed");
       setCurrentPassword("");
       setNewPassword("");
       setConfirmPassword("");
-      setPasswordNotice({ type: "success", text: "Senha alterada com sucesso. Use a nova senha no próximo login." });
+      toast.success("Senha alterada com sucesso. Use a nova senha no próximo login.");
     } catch {
-      setPasswordNotice({ type: "error", text: "Nao foi possivel alterar a senha. Tente novamente." });
+      toast.error("Não foi possível alterar a senha. Tente novamente.");
     } finally {
       setPasswordSaving(false);
     }
@@ -264,8 +238,6 @@ export function SettingsPage() {
             <label htmlFor="cfg-email" className={labelClass} style={{ fontWeight: 400 }}>E-mail de login</label>
           </div>
 
-          <NoticeMessage notice={profileNotice} />
-
           <motion.button
             type="submit"
             whileHover={{ scale: 1.01, y: -1 }}
@@ -317,8 +289,6 @@ export function SettingsPage() {
           <p className="text-[#A7A39B]/70 text-xs leading-relaxed" style={{ fontWeight: 400 }}>
             Use pelo menos {MIN_PASSWORD} caracteres. A senha atual é conferida antes da troca.
           </p>
-
-          <NoticeMessage notice={passwordNotice} />
 
           <motion.button
             type="submit"
