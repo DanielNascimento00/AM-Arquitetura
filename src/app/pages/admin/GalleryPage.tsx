@@ -4,7 +4,7 @@ import { Upload, Star, Trash2, Pencil, X, GripVertical, Search } from "lucide-re
 import { authHeaders } from "@/app/auth";
 import {
   MEDIA_ACCEPT, MAX_SUB_MEDIA, emptyFileSlots, emptySubPhotoSlots, readFile,
-  MediaPreview, categoryConfig, normalizeProject, appendProjectFormData,
+  MediaPreview, categoryConfig, prepareMedia, normalizeProject, appendProjectFormData,
   useAdmin, type ApiProject, type PhotoCategory, type Project, type SubPhoto,
 } from "./shared";
 
@@ -106,8 +106,9 @@ export function GalleryPage() {
 
   const handleEditMainFile = useCallback(async (file: File) => {
     if (!file.type.startsWith("image/") && file.type !== "video/mp4") return;
-    setEditMainFile(file);
-    setEditMainPreview(await readFile(file));
+    const prepared = await prepareMedia(file);
+    setEditMainFile(prepared);
+    setEditMainPreview(await readFile(prepared));
     setEditMainGradient("");
   }, []);
 
@@ -119,10 +120,11 @@ export function GalleryPage() {
   const handleEditSubFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file || editActiveSubSlot === null) return;
-    const url = await readFile(file);
+    const prepared = await prepareMedia(file);
+    const url = await readFile(prepared);
     const newSub: SubPhoto = { id: Date.now(), preview: url, gradient: "" };
     setEditSubSlots((prev) => prev.map((s, i) => i === editActiveSubSlot ? newSub : s));
-    setEditSubFiles((prev) => prev.map((s, i) => i === editActiveSubSlot ? file : s));
+    setEditSubFiles((prev) => prev.map((s, i) => i === editActiveSubSlot ? prepared : s));
     e.target.value = "";
   };
 

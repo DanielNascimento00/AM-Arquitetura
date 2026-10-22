@@ -5,13 +5,13 @@ import { Link } from "react-router";
 import { authHeaders } from "@/app/auth";
 import {
   MEDIA_ACCEPT, MAX_SUB_MEDIA, emptyFileSlots, emptyPreviewSlots, readFile,
-  MediaPreview, categoryConfig, normalizeProject, appendProjectFormData,
+  MediaPreview, categoryConfig, prepareMedia, describeProjectError, MAX_UPLOAD_BYTES, normalizeProject, appendProjectFormData,
   useAdmin, type ApiProject, type PhotoCategory,
 } from "./shared";
 
 export function AddProjectPage() {
   const { projects, setProjects, projectsLoading, handleUnauthorized } = useAdmin();
-  const [saveError, setSaveError] = useState(false);
+  const [saveError, setSaveError] = useState<string | null>(null);
   const [saved, setSaved] = useState(false);
   const [projectSaving, setProjectSaving] = useState(false);
   const [isDragging, setIsDragging] = useState(false);
@@ -32,8 +32,9 @@ export function AddProjectPage() {
 
   const handleMainFile = useCallback(async (file: File) => {
     if (!file.type.startsWith("image/") && file.type !== "video/mp4") return;
-    setMainFile(file);
-    setMainPreview(await readFile(file));
+    const prepared = await prepareMedia(file);
+    setMainFile(prepared);
+    setMainPreview(await readFile(prepared));
   }, []);
 
   const onDropMain = useCallback((e: React.DragEvent) => {
@@ -51,8 +52,9 @@ export function AddProjectPage() {
   const handleSubFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file || activeSubSlot === null) return;
-    const url = await readFile(file);
-    setSubFiles((prev) => prev.map((p, i) => i === activeSubSlot ? file : p));
+    const prepared = await prepareMedia(file);
+    const url = await readFile(prepared);
+    setSubFiles((prev) => prev.map((p, i) => i === activeSubSlot ? prepared : p));
     setSubPreviews((prev) => prev.map((p, i) => i === activeSubSlot ? url : p));
     e.target.value = "";
   };
@@ -73,16 +75,24 @@ export function AddProjectPage() {
       if (file) formData.append("subPhotos", file);
     });
 
+    const totalSize = [mainFile, ...subFiles].reduce((sum, file) => sum + (file?.size ?? 0), 0);
+    if (totalSize > MAX_UPLOAD_BYTES) {
+      setSaved(false);
+      setSaveError(`Os arquivos somam ${(totalSize / 1024 / 1024).toFixed(1).replace(".", ",")} MB e o limite por envio é 4,5 MB. Use imagens menores ou menos submídias.`);
+      return;
+    }
+
     setProjectSaving(true);
     setSaved(false);
+    let response: Response | null = null;
     try {
-      const response = await fetch("/api/projects", { method: "POST", body: formData, headers: authHeaders() });
+      response = await fetch("/api/projects", { method: "POST", body: formData, headers: authHeaders() });
       if (response.status === 401) { handleUnauthorized(); return; }
       if (!response.ok) throw new Error("project_create_failed");
       const result = await response.json() as { data: ApiProject };
       const newProject = normalizeProject(result.data);
       setProjects((prev) => [...prev.filter((p) => p.id !== newProject.id), newProject].sort((a, b) => a.order - b.order));
-      setSaveError(false);
+      setSaveError(null);
       setSaved(true);
       setMainFile(null);
       setMainPreview(null);
@@ -90,7 +100,7 @@ export function AddProjectPage() {
       setSubPreviews(emptyPreviewSlots());
       setPhotoForm({ title: "", description: "", category: "arquitetura", order: projects.length + 2, featured: false });
     } catch {
-      setSaveError(true);
+      setSaveError(await describeProjectError(response && !response.ok ? response : null));
     } finally {
       setProjectSaving(false);
     }
@@ -124,8 +134,8 @@ export function AddProjectPage() {
           </p>
         )}
         {saveError && (
-          <p className="mb-4 text-[#f87171] text-xs leading-relaxed" style={{ fontWeight: 400 }}>
-            Nao foi possivel salvar o projeto. Verifique STORAGE_REDIS_URL e BLOB_READ_WRITE_TOKEN.
+          <p role="alert" className="mb-4 text-[#f87171] text-xs leading-relaxed" style={{ fontWeight: 400 }}>
+            {saveError}
           </p>
         )}
 

@@ -406,6 +406,10 @@ export default async function handler(req: IncomingMessage, res: ServerResponse)
 
     reply(res, 405, { error: "method_not_allowed" });
   } catch (error) {
-    reply(res, 500, { error: "projects_error" });
+    // Só expõe o detalhe a quem está autenticado como administrador
+    const detail = req.method !== "GET" && validateAdminRequest(req) && error instanceof Error
+      ? error.message.slice(0, 160)
+      : undefined;
+    reply(res, 500, { error: "projects_error", detail });
   }
 }

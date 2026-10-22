@@ -120,3 +120,43 @@ export function appendProjectFormData(
 
 export const readFile = (file: File): Promise<string> =>
   new Promise((res) => { const r = new FileReader(); r.onload = (e) => res(e.target?.result as string); r.readAsDataURL(file); });
+
+/** Limite de corpo das funções serverless da Vercel (4,5 MB), com margem. */
+export const MAX_UPLOAD_BYTES = 4.2 * 1024 * 1024;
+
+/** Reduz imagens grandes (máx. 2400px, JPEG) para caber no limite de envio. Vídeos e GIFs passam direto. */
+export async function prepareMedia(file: File): Promise<File> {
+  if (!/^image\/(png|jpeg|webp)$/.test(file.type) || file.size <= 1024 * 1024) return file;
+  try {
+    const bitmap = await createImageBitmap(file);
+    const scale = Math.min(1, 2400 / Math.max(bitmap.width, bitmap.height));
+    const canvas = document.createElement("canvas");
+    canvas.width = Math.round(bitmap.width * scale);
+    canvas.height = Math.round(bitmap.height * scale);
+    const ctx = canvas.getContext("2d");
+    if (!ctx) return file;
+    ctx.fillStyle = "#ffffff";
+    ctx.fillRect(0, 0, canvas.width, canvas.height);
+    ctx.drawImage(bitmap, 0, 0, canvas.width, canvas.height);
+    const blob = await new Promise<Blob | null>((res) => canvas.toBlob(res, "image/jpeg", 0.85));
+    if (!blob || blob.size >= file.size) return file;
+    return new File([blob], file.name.replace(/\.[^.]+$/, "") + ".jpg", { type: "image/jpeg" });
+  } catch {
+    return file;
+  }
+}
+
+/** Traduz a resposta de erro da API de projetos em uma mensagem para o administrador. */
+export async function describeProjectError(response: Response | null): Promise<string> {
+  if (!response) return "Sem conexão com o servidor. Verifique a internet e tente novamente.";
+  if (response.status === 413) return "Os arquivos são grandes demais para um único envio (limite de 4,5 MB). Use imagens menores ou menos submídias.";
+  const body = await response.json().catch(() => ({})) as { error?: string; detail?: string };
+  switch (body.error) {
+    case "redis_not_configured": return "Banco de dados não configurado (STORAGE_REDIS_URL).";
+    case "blob_not_configured": return "Armazenamento de mídia não configurado (BLOB_READ_WRITE_TOKEN).";
+    case "missing_required_fields": return "Preencha o título e envie a foto principal.";
+    case "invalid_media_type": return "Formato de arquivo não aceito. Use imagens ou MP4.";
+    case "media_too_large": return "Um dos arquivos excede o tamanho máximo.";
+    default: return `Não foi possível salvar o projeto (erro ${response.status}${body.detail ? `: ${body.detail}` : ""}).`;
+  }
+}
